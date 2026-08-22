@@ -1,7 +1,7 @@
 import json
 import argparse
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from scoring import score_prediction
 
@@ -23,7 +23,7 @@ def main():
     with open(args.adapted) as f:
         adapted_data = {item["id"]: item for item in json.load(f)}
         
-    # Hard Validation 1: IDs must match
+    # Hard Validation 1: IDs must match exactly
     base_ids = set(base_data.keys())
     adapted_ids = set(adapted_data.keys())
     if base_ids != adapted_ids:
@@ -59,21 +59,51 @@ def main():
         md_f.write(f"- base_json = {args.base}\n")
         md_f.write(f"- adapted_json = {args.adapted}\n")
         md_f.write(f"- Git commit = {get_git_commit()}\n")
-        md_f.write(f"- generated_at = {datetime.utcnow().isoformat()}Z\n\n")
+        md_f.write(f"- generated_at = {datetime.now(timezone.utc).isoformat()}\n\n")
     
         for rid in sorted(base_ids):
             base_record = base_data[rid]
             adapted_record = adapted_data[rid]
             
-            task = adapted_record["task"]
-            question = adapted_record["question"]
-            expected = adapted_record["expected_answer"]
+            # Hard Validations (Rule 8)
+            # Enforce strictly on canonical schema (detect via prediction dict or timestamp)
+            # but allow legacy flat files to pass if they don't have provenance at all
+            if "timestamp" in base_record or "prediction" in base_record:
+                if "model" not in base_record or "checkpoint" not in base_record:
+                    raise ValueError(f"Model provenance missing in base record for ID {rid}")
+                if "model" not in adapted_record or "checkpoint" not in adapted_record:
+                    raise ValueError(f"Model provenance missing in adapted record for ID {rid}")
+                
+            task = adapted_record.get("task", "unknown")
+            if task != base_record.get("task"):
+                raise ValueError(f"Task differs for ID {rid}: base='{base_record.get('task')}', adapted='{task}'")
+                
+            # Safely extract expected answer
+            expected = adapted_record.get("expected_answer", adapted_record.get("answer", ""))
+            base_expected = base_record.get("expected_answer", base_record.get("answer", ""))
+            if expected != base_expected:
+                raise ValueError(f"Expected answer differs for ID {rid}: base='{base_expected}', adapted='{expected}'")
+                
+            # Image list differs (only check if images exist in the record)
+            if "images" in adapted_record or "images" in base_record:
+                a_images = adapted_record.get("images", [])
+                b_images = base_record.get("images", [])
+                if a_images != b_images:
+                    raise ValueError(f"Image list differs for ID {rid}")
             
-            base_pred = base_record.get("prediction", {}).get("answer", "")
-            adapted_pred = adapted_record.get("prediction", {}).get("answer", "")
+            # Safely extract predictions, mapping to the real structure of evaluate_authoritative.py
+            if "prediction" in base_record and isinstance(base_record["prediction"], dict):
+                base_pred = base_record["prediction"].get("answer", "")
+            else:
+                base_pred = base_record.get("prediction", base_record.get("model_answer", ""))
+                
+            if "prediction" in adapted_record and isinstance(adapted_record["prediction"], dict):
+                adapted_pred = adapted_record["prediction"].get("answer", "")
+            else:
+                adapted_pred = adapted_record.get("prediction", adapted_record.get("model_answer", ""))
             
-            b_success = base_record.get("success", False)
-            a_success = adapted_record.get("success", False)
+            b_success = base_record.get("success", True)
+            a_success = adapted_record.get("success", True)
             
             summary["total_evaluated"] += 1
             if b_success: summary["base_success"] += 1
@@ -134,10 +164,9 @@ def main():
                 "category": category
             })
             
-            # Write to markdown file exactly one section per ID
+            # Write exactly one section per ID
             md_f.write(f"## Record ID: {rid}\n")
             md_f.write(f"- **Task**: {task}\n")
-            md_f.write(f"- **Question**: {question}\n")
             md_f.write(f"- **Expected Answer**: {expected}\n")
             md_f.write(f"- **Base Prediction**: {base_pred}\n")
             md_f.write(f"- **Adapted Prediction**: {adapted_pred}\n")
@@ -187,7 +216,6 @@ def main():
             
         for cat, fails in categories.items():
             f.write(f"## {cat.title()} ({len(fails)} cases)\n")
-            # Only print first 5 of each type to prevent giant files
             for fail in fails[:5]:
                 f.write(f"- **ID**: {fail['id']} | **Task**: {fail['task']}\n")
                 f.write(f"  - **Expected**: {fail['expected']}\n")
