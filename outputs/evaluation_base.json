@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cdvqa_69",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "model_answer": "I cannot tell. no."
+  },
+  {
+    "id": "rsvqa_13",
+    "task": "vqa",
+    "expected_answer": "10",
+    "model_answer": "There are 12 water areas visible."
+  },
+  {
+    "id": "rsvqa_17",
+    "task": "vqa",
+    "expected_answer": "no",
+    "model_answer": "no"
+  },
+  {
+    "id": "cdvqa_28",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "model_answer": "yes"
+  },
+  {
+    "id": "cdvqa_31",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "model_answer": "yes"
+  },
+  {
+    "id": "cdvqa_35",
+    "task": "change_vqa",
+    "expected_answer": "no",
+    "model_answer": "The images are identical. no change."
+  },
+  {
+    "id": "rsvqa_3",
+    "task": "vqa",
+    "expected_answer": "104",
+    "model_answer": "15 buildings can be seen."
+  },
+  {
+    "id": "rsvqa_14",
+    "task": "vqa",
+    "expected_answer": "no",
+    "model_answer": "no, there is no circular building."
+  }
+]

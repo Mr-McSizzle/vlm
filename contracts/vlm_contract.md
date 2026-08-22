@@ -17,82 +17,154 @@ from inference import vlm_answer
 |---|---|---|---|
 | `images` | `str` or `List[str]` | Yes | A single image path (string) or a list of image paths (strings). |
 | `question` | `str` | Yes | The natural language question or prompt to ask the model. |
-| `evidence` | `dict` or `str` or `None` | No | Optional supporting evidence (e.g. from CD or retrieval). Must be natively JSON-serializable if dict. |
+| `evidence` | `dict` or `None` | No | Optional supporting evidence from P2 (Prithvi). Must adhere to schema. |
 | `task` | `str` or `None` | No | Explicitly declares the task format. |
 
-## Allowed Image Counts & Task Values
-
-- **`vqa`**: Requires exactly **1** image. Standard visual question answering.
-- **`change_vqa`**: Requires exactly **2** images (`images[0]` = earlier, `images[1]` = later). 
-- **`caption`**: Requires exactly **1** image. Detailed image description.
-- **`grounding`**: Requires exactly **1** image.
-
-*Note: If `task` is `None`, the VLM will infer the task based on the image count (2 images -> change_vqa) and question keywords.*
-
 ## Evidence Schema (Optional)
-Evidence is completely optional. If provided as a `dict`, it should be flat or simply nested JSON-serializable data. Example:
+Evidence must be a JSON-serializable dictionary with one of the following schemas:
+
+### Change Detection
 ```json
 {
     "type": "change_detection",
     "changed_fraction": 0.21,
-    "dominant_region": "south"
+    "dominant_region": "south",
+    "mask_path": "/optional/path.png"
+}
+```
+
+### Segmentation
+```json
+{
+    "type": "segmentation",
+    "classes": ["water", "building"],
+    "regions": ["north", "center"],
+    "mask_path": "/optional/path.png"
+}
+```
+
+### Fusion
+```json
+{
+    "type": "fusion",
+    "optical_summary": "clear vegetation and water boundaries",
+    "sar_summary": "strong radar response over built-up areas",
+    "agreement": 0.87,
+    "confidence": 0.95
 }
 ```
 
 ## Output Schema
 Returns ONLY JSON-serializable Python dictionaries. Never returns tensors, PIL objects, or raw model objects.
 
-### Success Output Example
 ```json
 {
-    "answer": "The total number of buildings is 12.",
+    "answer": "string",
+    "task": "string",
     "regions": [],
+    "confidence": null,
     "model": "satquery-vlm",
     "checkpoint": "checkpoints/final_adapter",
     "metadata": {
-        "task": "vqa",
-        "latency_seconds": 2.45,
-        "status": "ok"
+        "status": "ok",
+        "latency_seconds": 0.0,
+        "truncated": false,
+        "raw_output_available": true
     }
 }
 ```
 
-### Error Output Example
+### 1. VQA Example
+```json
+{
+    "answer": "The number of buildings is 12.",
+    "task": "vqa",
+    "regions": [],
+    "confidence": null,
+    "model": "satquery-vlm",
+    "checkpoint": "checkpoints/final_adapter",
+    "metadata": {
+        "status": "ok",
+        "latency_seconds": 2.45,
+        "truncated": false,
+        "raw_output_available": true
+    }
+}
+```
+
+### 2. Change-VQA Example
+```json
+{
+    "answer": "The detected change affects approximately 21% of the scene...",
+    "task": "change_vqa",
+    "regions": [],
+    "confidence": null,
+    "model": "satquery-vlm",
+    "checkpoint": "checkpoints/final_adapter",
+    "metadata": {
+        "status": "ok",
+        "latency_seconds": 3.12,
+        "truncated": false,
+        "raw_output_available": true,
+        "evidence_used": true,
+        "evidence_type": "change_detection",
+        "evidence_source": "external_perception"
+    }
+}
+```
+
+### 3. Grounding Example
+```json
+{
+    "answer": "A building.",
+    "task": "grounding",
+    "regions": [
+        {"x1": 10.0, "y1": 20.5, "x2": 30.0, "y2": 40.0}
+    ],
+    "confidence": null,
+    "model": "satquery-vlm",
+    "checkpoint": "checkpoints/final_adapter",
+    "metadata": {
+        "status": "ok",
+        "latency_seconds": 1.45,
+        "truncated": false,
+        "raw_output_available": true
+    }
+}
+```
+
+### 4. Parser Warning Example
 ```json
 {
     "answer": "",
+    "task": "grounding",
     "regions": [],
+    "confidence": null,
+    "model": "satquery-vlm",
+    "checkpoint": "checkpoints/final_adapter",
+    "metadata": {
+        "status": "warning",
+        "parse_warning": "Coordinates out of bounds (0-100) or invalid dimensions.",
+        "latency_seconds": 1.45,
+        "truncated": false,
+        "raw_output_available": true
+    }
+}
+```
+
+### 5. Error Example
+```json
+{
+    "answer": "",
+    "task": "vqa",
+    "regions": [],
+    "confidence": null,
     "model": "satquery-vlm",
     "checkpoint": "unknown",
     "metadata": {
         "status": "error",
         "error_type": "ValueError",
-        "error_message": "change_vqa requires exactly 2 images. Got 1."
+        "error_message": "Malformed evidence object: ..."
     }
 }
-```
-
-### Grounding Regions
-If the model outputs a parseable `REGION: [x1, y1, x2, y2]`, it will be stripped from the `answer` string and added as a list of floats `[0.1, 0.2, 0.8, 0.9]` to `regions`. If parsing fails, `regions` remains empty and `metadata["parse_warning"]` is added.
-
-## Examples
-
-### 1. Single Image VQA
-```python
-result = vlm_answer(
-    images="data/sample_1.jpg", 
-    question="Are there any airplanes visible?",
-    task="vqa"
-)
-print(result["answer"])
-```
-
-### 2. Temporal Change-VQA
-```python
-result = vlm_answer(
-    images=["data/before.jpg", "data/after.jpg"], 
-    question="Did the forested area decrease?",
-    task="change_vqa"
-)
-print(result["answer"])
 ```

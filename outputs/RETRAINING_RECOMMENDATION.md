@@ -1,24 +1,22 @@
 # Retraining Recommendation
 
-## Corrected Dataset Size
-- **Total Records:** 80 (64 train, 8 val, 8 test)
-- **VQA:** 20
-- **Change-VQA:** 60
-- **Caption:** 0
-- **Grounding:** 0
+**A. Is the current adapted model better than the base model?**
+No. The adapted model is demonstrably worse. The overall accuracy dropped from 62.5% to 25.0%. The model lost foundational reasoning and counting capabilities, defaulting instead to a naive "yes" bias for binary questions and failing entirely at numeric estimation (e.g., answering 0 when the expected count was 104).
 
-## Data Removals
-- **BigEarthNet (Caption)**: 20 records were entirely removed from the unified dataset. The text descriptions were merely bounding box coordinates (e.g., `[0.0 0.33, 0.28 0.8]`), and the records contained absolutely zero physical image references (`"images": []`). This fundamentally violates image-caption training.
-- **Grounding**: 0 records exist because real VRSBench image assets are unavailable.
+**B. Is the difference statistically/meaningfully supported by this tiny test set?**
+No, it is not statistically significant. The test set is absurdly small (only 8 records). A single changed answer shifts the accuracy by 12.5%. However, the *qualitative* degradation (loss of counting ability, lazy biases) across these 8 examples is a meaningful indicator of severe overfitting and catastrophic forgetting caused by training on an equally tiny 64-example dataset.
 
-## Recommendation for Another Training Run
-**The current corrected training corpus of 64 training examples is TOO SMALL for robust, generalized domain adaptation.**
+**C. Which task is weakest?**
+VQA is the weakest task. The adapted model scored 0.0% on VQA (down from 50.0% base accuracy). It failed all counting questions (producing answers like "0" or "2" for counts in the tens or hundreds) and flipped correct "no" classifications into incorrect "yes" classifications. Change-VQA also degraded, dropping from 75.0% to 50.0% due to the same indiscriminate "yes" bias.
 
-While the pipeline is now completely free of evaluation bugs, static image duplication, truncated generations, and corrupt training data, fine-tuning an 8B/7B parameter model on 64 examples will primarily cause aggressive overfitting (memorization) rather than teaching the model the core semantic tasks of remote sensing Change-VQA. 
+**D. Is more training data required?**
+Yes, absolutely. A training corpus of 64 total examples is completely inadequate for fine-tuning an 8B parameter vision-language model. The current dataset size induces severe overfitting and mode collapse (such as always outputting "yes").
 
-### Is another T4 run worth the available time?
-**No**, unless the dataset is scaled first. 
-Running a T4 training sequence on 64 examples will successfully prove that the *mechanics* of the LoRA pipeline work, but it will not yield a model capable of zero-shot generalizability on unseeen CDVQA test records.
+**E. What should the next training dataset contain?**
+The next training dataset must be significantly scaled up to prevent mode collapse and teach generalizable reasoning. It should contain:
+- **500+ diverse Change-VQA pairs** with a balanced distribution of "yes" (change occurred) and "no" (no change) examples to break the "yes" bias.
+- **500+ standard VQA examples**, heavily featuring counting tasks with varying magnitudes (small, medium, and large numbers) and spatial relationship tasks.
+- **Valid Image-Caption pairs** (since BigEarthNet was corrupted and removed), ensuring every caption corresponds to a single real image and contains descriptive natural language, not bounding boxes.
 
-**Minimum Practical Training Configuration**:
-We need a minimum of 500+ Change-VQA pairs and 500+ VQA images to expect any meaningful alignment in the adapter weights. If a run *must* be done to prove the hackathon pipeline operates end-to-end, the 64-record set can be used, but expectations for qualitative performance improvements should be strictly bounded.
+**F. Is another T4 training run worth doing?**
+**No**, not until the dataset is radically expanded. Running another T4 sequence on the same 64-example dataset will just yield the exact same overfitted, collapsed model. Time and compute resources should be spent on data acquisition (e.g., retrieving actual VRSBench and larger CDVQA subsets) before scheduling another GPU session.

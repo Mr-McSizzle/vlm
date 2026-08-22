@@ -1,0 +1,74 @@
+[
+  {
+    "id": "cdvqa_69",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "base_answer": "I cannot tell. no.",
+    "adapted_answer": "yes",
+    "base_correct": false,
+    "adapted_correct": true
+  },
+  {
+    "id": "rsvqa_13",
+    "task": "vqa",
+    "expected_answer": "10",
+    "base_answer": "There are 12 water areas visible.",
+    "adapted_answer": "2",
+    "base_correct": false,
+    "adapted_correct": false
+  },
+  {
+    "id": "rsvqa_17",
+    "task": "vqa",
+    "expected_answer": "no",
+    "base_answer": "no",
+    "adapted_answer": "yes",
+    "base_correct": true,
+    "adapted_correct": false
+  },
+  {
+    "id": "cdvqa_28",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "base_answer": "yes",
+    "adapted_answer": "no",
+    "base_correct": true,
+    "adapted_correct": false
+  },
+  {
+    "id": "cdvqa_31",
+    "task": "change_vqa",
+    "expected_answer": "yes",
+    "base_answer": "yes",
+    "adapted_answer": "yes, regions changed",
+    "base_correct": true,
+    "adapted_correct": true
+  },
+  {
+    "id": "cdvqa_35",
+    "task": "change_vqa",
+    "expected_answer": "no",
+    "base_answer": "The images are identical. no change.",
+    "adapted_answer": "yes, the playgrounds changed",
+    "base_correct": true,
+    "adapted_correct": false
+  },
+  {
+    "id": "rsvqa_3",
+    "task": "vqa",
+    "expected_answer": "104",
+    "base_answer": "15 buildings can be seen.",
+    "adapted_answer": "0",
+    "base_correct": false,
+    "adapted_correct": false
+  },
+  {
+    "id": "rsvqa_14",
+    "task": "vqa",
+    "expected_answer": "no",
+    "base_answer": "no, there is no circular building.",
+    "adapted_answer": "yes",
+    "base_correct": true,
+    "adapted_correct": false
+  }
+]
