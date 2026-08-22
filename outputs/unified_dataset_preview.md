@@ -2,6 +2,16 @@
 
 This document showcases REAL examples pulled from the local datasets.
 
+**Total records:** 100
+**Missing image references:** 0
+
+**VQA:** 20
+**CHANGE_VQA:** 60
+**CAPTION:** 20
+**GROUNDING:** 0
+
+---
+
 ## CHANGE_VQA Example (Source: cdvqa)
 - **ID**: cdvqa_42
 - **Images**: ['data/external/cdvqa/images/cdvqa-train-00000022_1.jpg', 'data/external/cdvqa/images/cdvqa-train-00000022_2.jpg']
@@ -178,4 +188,4 @@ This document showcases REAL examples pulled from the local datasets.
 - **Region**: None
 
 ## Status
-DATA PIPELINE UNBLOCKED.
+DATASET INTEGRITY VERIFIED. All image references exist.
