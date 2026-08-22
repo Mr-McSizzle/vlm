@@ -137,7 +137,7 @@ def download_bigearthnet(limit=100):
             json.dump(records, f)
 
 if __name__ == "__main__":
-    download_cdvqa(train_limit=20, val_limit=10)
+    download_cdvqa(train_limit=40, val_limit=10)
     download_rsvqa(val_limit=20)
     download_bigearthnet(limit=20)
-    download_vrsbench(train_limit=20, val_limit=10)
+    # download_vrsbench(train_limit=20, val_limit=10)
