@@ -1,0 +1,109 @@
+[
+  {
+    "id": "rsvqa_13",
+    "task": "vqa",
+    "question": "What is the number of water areas on the left of a  commercial building?",
+    "images": [
+      "data/external/rsvqa/images/validation_13.jpg"
+    ],
+    "target": "10",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: What is the number of water areas on the left of a  commercial building?",
+    "latency": 0.1
+  },
+  {
+    "id": "rsvqa_17",
+    "task": "vqa",
+    "question": "Is the number of buildings equal to the number of forests?",
+    "images": [
+      "data/external/rsvqa/images/validation_17.jpg"
+    ],
+    "target": "no",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Is the number of buildings equal to the number of forests?",
+    "latency": 0.1
+  },
+  {
+    "id": "rsvqa_3",
+    "task": "vqa",
+    "question": "What is the number of buildings?",
+    "images": [
+      "data/external/rsvqa/images/validation_3.jpg"
+    ],
+    "target": "104",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: What is the number of buildings?",
+    "latency": 0.1
+  },
+  {
+    "id": "rsvqa_14",
+    "task": "vqa",
+    "question": "Is a circular building present in the image?",
+    "images": [
+      "data/external/rsvqa/images/validation_14.jpg"
+    ],
+    "target": "no",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Is a circular building present in the image?",
+    "latency": 0.1
+  },
+  {
+    "id": "cdvqa_28",
+    "task": "change_vqa",
+    "question": "Have the areas of low vegetation changed in the first image?",
+    "images": [
+      "data/external/cdvqa/images/cdvqa-train-00000008_1.jpg",
+      "data/external/cdvqa/images/cdvqa-train-00000008_2.jpg"
+    ],
+    "target": "yes",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Have the areas of low vegetation changed in the first image?",
+    "latency": 0.1
+  },
+  {
+    "id": "cdvqa_31",
+    "task": "change_vqa",
+    "question": "Did the regions of non-vegetated ground surface change in the post-event image?",
+    "images": [
+      "data/external/cdvqa/images/cdvqa-train-00000011_1.jpg",
+      "data/external/cdvqa/images/cdvqa-train-00000011_2.jpg"
+    ],
+    "target": "yes",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Did the regions of non-vegetated ground surface change in the post-event image?",
+    "latency": 0.1
+  },
+  {
+    "id": "cdvqa_35",
+    "task": "change_vqa",
+    "question": "Did the areas of playgrounds change in the post-change image?",
+    "images": [
+      "data/external/cdvqa/images/cdvqa-train-00000015_1.jpg",
+      "data/external/cdvqa/images/cdvqa-train-00000015_2.jpg"
+    ],
+    "target": "no",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Did the areas of playgrounds change in the post-change image?",
+    "latency": 0.1
+  },
+  {
+    "id": "bigearthnet_86",
+    "task": "caption",
+    "question": "Describe this satellite image.",
+    "images": [],
+    "target": "yes",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Describe this satellite image.",
+    "latency": 0.1
+  },
+  {
+    "id": "bigearthnet_94",
+    "task": "caption",
+    "question": "Describe this satellite image.",
+    "images": [],
+    "target": "[0.64 0.0, 1.0 0.71]",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Describe this satellite image.",
+    "latency": 0.1
+  },
+  {
+    "id": "bigearthnet_81",
+    "task": "caption",
+    "question": "Describe this satellite image.",
+    "images": [],
+    "target": "no",
+    "prediction": "Dummy response to: You are analyzing a satellite image.\nAnswer the user's question using only evidence visible in the image.\nQuestion: Describe this satellite image.",
+    "latency": 0.1
+  }
+]

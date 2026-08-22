@@ -141,14 +141,6 @@ def build_unified_dataset(config, config_path):
                         record["answer"] = a
                         records.append(record)
 
-                    elif ds_name == "bigearthnet":
-                        # Text-only caption records — no image files required
-                        record["task"] = "caption"
-                        record["images"] = []
-                        record["question"] = "Describe this satellite image."
-                        record["answer"] = item.get("output", "")
-                        records.append(record)
-
                 except Exception as e:
                     invalid += 1
 

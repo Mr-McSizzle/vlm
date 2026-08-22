@@ -25,7 +25,7 @@ dataset:
       
     bigearthnet:
       path: "data/external/bigearthnet_txt"
-      enabled: true
+      enabled: false
       limit: 20
       tasks: ["caption"]
 
@@ -53,3 +53,6 @@ training:
   warmup_ratio: 0.03
   fp16: true
   output_dir: "checkpoints/final_adapter"
+
+generation:
+  max_new_tokens: 128

@@ -1,22 +1,22 @@
-import torch
-import sys
+import json
+import time
+import argparse
 from pathlib import Path
 from PIL import Image
-from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
-from peft import PeftModel
-import yaml
 
-def main():
+def evaluate_final(model_type, checkpoint_path=None):
+    import torch
+    from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
+    from peft import PeftModel
+    import yaml
+
     vlm_dir = Path(__file__).parent
     
     config_path = vlm_dir / "config.yaml"
     with open(config_path) as f:
         config = yaml.safe_load(f)
         
-    out_dir = vlm_dir / config["training"]["output_dir"]
-    if not out_dir.exists():
-        print(f"ERROR: Checkpoint not found at {out_dir}")
-        sys.exit(1)
+    max_tokens = config.get("generation", {}).get("max_new_tokens", 128)
 
     print("Loading processor...")
     processor = AutoProcessor.from_pretrained('llava-hf/llava-1.5-7b-hf')
@@ -28,65 +28,78 @@ def main():
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
     )
-    base_model = LlavaForConditionalGeneration.from_pretrained(
+    model = LlavaForConditionalGeneration.from_pretrained(
         'llava-hf/llava-1.5-7b-hf',
         quantization_config=q_config,
         device_map={"": 0}
     )
     
-    # Base Evaluation
-    test_img_path = vlm_dir / "test.jpg"
-    img = Image.open(test_img_path).convert('RGB')
-    prompt = "USER: <image>\nWhat is visible in this satellite image?\nASSISTANT:"
-    inputs = processor(text=prompt, images=img, return_tensors="pt").to('cuda')
+    if model_type == "adapted":
+        if not checkpoint_path:
+            checkpoint_path = vlm_dir / config["training"]["output_dir"]
+        print(f"Loading adapted model from {checkpoint_path}...")
+        model = PeftModel.from_pretrained(model, str(checkpoint_path))
     
-    base_model.eval()
-    with torch.no_grad():
-        out_base = base_model.generate(**inputs, max_new_tokens=50)
-    base_answer = processor.decode(out_base[0], skip_special_tokens=True).split("ASSISTANT: ")[-1]
+    model.eval()
+
+    test_file = vlm_dir / "data/unified/test.jsonl"
+    records = []
+    with open(test_file) as f:
+        for line in f:
+            if line.strip():
+                records.append(json.loads(line))
+                
+    results = []
     
-    print("Loading adapted model...")
-    adapted_model = PeftModel.from_pretrained(base_model, str(out_dir))
-    adapted_model.eval()
-    
-    with torch.no_grad():
-        out_adapted = adapted_model.generate(**inputs, max_new_tokens=50)
-    adapted_answer = processor.decode(out_adapted[0], skip_special_tokens=True).split("ASSISTANT: ")[-1]
-    
-    # Two-image Change VQA Evaluation
-    prompt_change = "USER: <image>\n<image>\nWhat changed between these two images?\nASSISTANT:"
-    inputs_change = processor(text=prompt_change, images=[img, img], return_tensors="pt").to('cuda')
-    with torch.no_grad():
-        out_change = adapted_model.generate(**inputs_change, max_new_tokens=50)
-    change_answer = processor.decode(out_change[0], skip_special_tokens=True).split("ASSISTANT: ")[-1]
-    
-    report = f"""# Base vs Adapted Final Evaluation
-
-## 1. Single-Image VQA
-**Question:** What is visible in this satellite image?
-
-**Base LLaVA-1.5 7B Output:**
-> {base_answer}
-
-**Final SatQuery VLM Output:**
-> {adapted_answer}
-
-## 2. Two-Image Change-VQA (Final VLM Only)
-**Question:** What changed between these two images?
-
-**Final SatQuery VLM Output:**
-> {change_answer}
-
-## Conclusion
-The model has been successfully evaluated post-training. The adapted model correctly loaded its LoRA weights and correctly processed single and multi-image inputs.
-"""
-    
-    out_file = vlm_dir / "outputs/BASE_VS_ADAPTED_FINAL.md"
-    out_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_file, 'w') as f:
-        f.write(report)
+    for record in records:
+        images_loaded = []
+        for img_rel in record.get("images", []):
+            img_path = Path(img_rel)
+            if not img_path.is_absolute():
+                img_path = vlm_dir / img_path
+            images_loaded.append(Image.open(img_path).convert('RGB'))
+            
+        prompt = "USER: " + "<image>\n" * len(images_loaded) + record["question"] + "\nASSISTANT:"
         
-    print(f"Evaluation complete. Report saved to {out_file}")
+        t0 = time.time()
+        if images_loaded:
+            inputs = processor(text=prompt, images=images_loaded, return_tensors="pt", padding=True).to('cuda')
+            if 'pixel_values' in inputs:
+                inputs['pixel_values'] = inputs['pixel_values'].to(torch.float16)
+        else:
+            inputs = processor(text=prompt, return_tensors="pt", padding=True).to('cuda')
+
+        with torch.no_grad():
+            out = model.generate(**inputs, max_new_tokens=max_tokens)
+            
+        ans = processor.decode(out[0], skip_special_tokens=True).split("ASSISTANT: ")[-1].strip()
+        latency = time.time() - t0
+        
+        results.append({
+            "id": record["id"],
+            "task": record["task"],
+            "source_dataset": record["source_dataset"],
+            "images": record.get("images", []),
+            "question": record["question"],
+            "expected_answer": record["answer"],
+            "model_answer": ans,
+            "checkpoint": "base" if model_type == "base" else str(checkpoint_path),
+            "latency_seconds": latency
+        })
+        
+    return results
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, choices=["base", "adapted"], required=True)
+    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--output", type=str, default="outputs/FINAL_EVALUATION_RAW.json")
+    args = parser.parse_args()
+    
+    results = evaluate_final(args.model, args.checkpoint)
+    
+    out_file = Path(__file__).parent / args.output
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_file, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"Saved evaluation to {out_file}")

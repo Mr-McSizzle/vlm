@@ -55,7 +55,30 @@ def verify():
                 source_counts[record.get("source_dataset", "unknown")] += 1
 
                 record_ok = True
-                for img in record.get("images", []):
+                images = record.get("images", [])
+                task = record.get("task", "unknown")
+                
+                # Check task invariants
+                if task == "vqa":
+                    if len(images) != 1:
+                        print(f"WARNING: VQA record {record.get('id')} has {len(images)} images (expected 1).")
+                        record_ok = False
+                elif task == "change_vqa":
+                    if len(images) != 2:
+                        print(f"WARNING: Change-VQA record {record.get('id')} has {len(images)} images (expected 2).")
+                        record_ok = False
+                elif task == "caption":
+                    if len(images) != 1:
+                        print(f"WARNING: Caption record {record.get('id')} has {len(images)} images (expected 1).")
+                        record_ok = False
+                    ans = record.get("answer", "")
+                    # Reject answers that look strictly like coordinates [0.0 0.33, ...] 
+                    import re
+                    if re.match(r'^\[[\d\.\s,]+\]$', ans.strip()):
+                        print(f"WARNING: Caption record {record.get('id')} has bounding box answer instead of text.")
+                        record_ok = False
+                
+                for img in images:
                     img_path = Path(img)
                     if not img_path.is_absolute() and img_path.parts and img_path.parts[0] == "data":
                         img_path = vlm_dir / img_path

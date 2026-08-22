@@ -1,24 +1,22 @@
 {
-  "total_examples": 100,
+  "total_examples": 80,
   "examples_by_source": {
     "cdvqa": 60,
-    "bigearthnet": 20,
     "rsvqa": 20
   },
   "examples_by_task": {
     "change_vqa": 60,
-    "caption": 20,
     "vqa": 20
   },
   "examples_by_split": {
-    "train": 80,
-    "val": 10,
-    "test": 10
+    "train": 64,
+    "val": 8,
+    "test": 8
   },
   "num_one_image": 20,
   "num_two_image": 60,
   "num_grounding": 0,
   "num_skipped_missing_images": 0,
   "num_invalid_parse_errors": 0,
-  "timestamp": "2026-08-23T00:18:15.049220"
+  "timestamp": "2026-08-23T01:55:23.408025"
 }
