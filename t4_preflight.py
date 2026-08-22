@@ -26,6 +26,11 @@ def fmt_gb(bytes_val):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_only", action="store_true", help="Only run config and dataset validation, skip model loading")
+    args = parser.parse_args()
+
     vlm_dir = Path(__file__).parent
     report_lines = []
 
@@ -73,196 +78,201 @@ def main():
     log(f"Accelerate:     {accelerate.__version__}")
 
     # ----------------------------------------------------------------
-    # STEP 2: Load model in 4-bit
-    # ----------------------------------------------------------------
-    log("\n--- STEP 2: Load LLaVA-1.5 in 4-bit ---")
+    if not args.config_only:
+        # STEP 2: Load model in 4-bit
+        # ----------------------------------------------------------------
+        log("\n--- STEP 2: Load LLaVA-1.5 in 4-bit ---")
 
-    from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
+        from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
 
-    torch.cuda.reset_peak_memory_stats()
-    vram_before_model = torch.cuda.memory_allocated()
-    log(f"VRAM before model load: {fmt_mb(vram_before_model)}")
+        torch.cuda.reset_peak_memory_stats()
+        vram_before_model = torch.cuda.memory_allocated()
+        log(f"VRAM before model load: {fmt_mb(vram_before_model)}")
 
-    log("Loading processor...")
-    processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
-    processor.tokenizer.pad_token = processor.tokenizer.eos_token
-    log(f"  Tokenizer vocab size: {len(processor.tokenizer)}")
-    log("  Processor loaded OK.")
+        log("Loading processor...")
+        processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
+        processor.tokenizer.pad_token = processor.tokenizer.eos_token
+        log(f"  Tokenizer vocab size: {len(processor.tokenizer)}")
+        log("  Processor loaded OK.")
 
-    log("Loading model in 4-bit NF4...")
-    q_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-    )
-    model = LlavaForConditionalGeneration.from_pretrained(
-        "llava-hf/llava-1.5-7b-hf",
-        quantization_config=q_config,
-        device_map={"": 0},
-    )
+        log("Loading model in 4-bit NF4...")
+        q_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
+        model = LlavaForConditionalGeneration.from_pretrained(
+            "llava-hf/llava-1.5-7b-hf",
+            quantization_config=q_config,
+            device_map={"": 0},
+        )
 
-    vram_after_model = torch.cuda.memory_allocated()
-    log(f"VRAM after model load:  {fmt_mb(vram_after_model)}")
-    log(f"Model VRAM footprint:   {fmt_mb(vram_after_model - vram_before_model)}")
+        vram_after_model = torch.cuda.memory_allocated()
+        log(f"VRAM after model load:  {fmt_mb(vram_after_model)}")
+        log(f"Model VRAM footprint:   {fmt_mb(vram_after_model - vram_before_model)}")
 
-    # ----------------------------------------------------------------
-    # STEP 3: Verify architecture
-    # ----------------------------------------------------------------
-    log("\n--- STEP 3: Architecture verification ---")
+        # ----------------------------------------------------------------
+        # STEP 3: Verify architecture
+        # ----------------------------------------------------------------
+        log("\n--- STEP 3: Architecture verification ---")
 
-    # Vision encoder frozen check
-    # We must explicitly freeze it before LoRA
-    vision_tensors = 0
-    vision_elements = 0
-    for name, param in model.named_parameters():
-        if "vision_tower" in name:
-            param.requires_grad = False
-            vision_tensors += 1
-            vision_elements += param.numel()
-            
-    vision_params = [p for n, p in model.named_parameters() if "vision_tower" in n]
-    vision_frozen = all(not p.requires_grad for p in vision_params)
-    
-    log(f"Vision encoder parameter tensors: {vision_tensors}")
-    log(f"Vision encoder total parameters:  {vision_elements:,}")
-    log(f"Vision encoder frozen:            {vision_frozen}")
-    if not vision_frozen:
-        log("WARNING: Vision encoder is NOT frozen!")
-        all_ok = False
+        # Vision encoder frozen check
+        # We must explicitly freeze it before LoRA
+        vision_tensors = 0
+        vision_elements = 0
+        for name, param in model.named_parameters():
+            if "vision_tower" in name:
+                param.requires_grad = False
+                vision_tensors += 1
+                vision_elements += param.numel()
 
-    # Check LoRA target modules exist
-    config_path = vlm_dir / "config.yaml"
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
+        vision_params = [p for n, p in model.named_parameters() if "vision_tower" in n]
+        vision_frozen = all(not p.requires_grad for p in vision_params)
 
-    lora_cfg = config["lora"]
-    import re
-    target_pattern = lora_cfg["target_modules"]
-    matched_modules = [
-        n for n, _ in model.named_modules()
-        if re.search(target_pattern, n)
-    ]
-    log(f"LoRA target pattern: {target_pattern}")
-    log(f"Matched modules:     {len(matched_modules)}")
-    if matched_modules:
-        log(f"  Sample: {matched_modules[:4]}")
-    else:
-        log("FATAL: No modules matched the LoRA target pattern!")
-        all_ok = False
-
-    # Attach LoRA
-    log("\nAttaching LoRA...")
-    from peft import LoraConfig, get_peft_model
-
-    peft_config = LoraConfig(
-        r=lora_cfg["r"],
-        lora_alpha=lora_cfg["alpha"],
-        lora_dropout=lora_cfg["dropout"],
-        target_modules=lora_cfg["target_modules"],
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, peft_config)
-    model.gradient_checkpointing_enable()
-    model.enable_input_require_grads()
-
-    trainable_params, all_params = model.get_nb_trainable_parameters()
-    log(f"Trainable parameters: {trainable_params:,} / {all_params:,}")
-    log(f"Trainable percentage: {100 * trainable_params / all_params:.4f}%")
-
-    vram_after_lora = torch.cuda.memory_allocated()
-    log(f"VRAM after LoRA:      {fmt_mb(vram_after_lora)}")
-
-    if trainable_params < 1_000_000:
-        log("WARNING: Trainable parameters seem too low!")
-        all_ok = False
-
-    # ----------------------------------------------------------------
-    # STEP 4: Real forward pass
-    # ----------------------------------------------------------------
-    log("\n--- STEP 4: Real forward pass ---")
-
-    # Load one actual training example
-    train_jsonl = vlm_dir / "data" / "unified" / "train.jsonl"
-    with open(train_jsonl) as f:
-        first_record = json.loads(f.readline())
-
-    log(f"Record ID:      {first_record['id']}")
-    log(f"Task:           {first_record['task']}")
-    log(f"Source:         {first_record['source_dataset']}")
-    log(f"Image count:    {len(first_record.get('images', []))}")
-
-    # Load images
-    from PIL import Image as PILImage
-    images = []
-    for img_rel in first_record.get("images", []):
-        img_path = Path(img_rel)
-        if not img_path.is_absolute() and img_path.parts and img_path.parts[0] == "data":
-            img_path = vlm_dir / img_path
-        if not img_path.exists():
-            log(f"FATAL: Image not found: {img_path}")
+        log(f"Vision encoder parameter tensors: {vision_tensors}")
+        log(f"Vision encoder total parameters:  {vision_elements:,}")
+        log(f"Vision encoder frozen:            {vision_frozen}")
+        if not vision_frozen:
+            log("WARNING: Vision encoder is NOT frozen!")
             all_ok = False
+
+        # Check LoRA target modules exist
+        config_path = vlm_dir / "config.yaml"
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+
+        lora_cfg = config["lora"]
+        import re
+        target_pattern = lora_cfg["target_modules"]
+        matched_modules = [
+            n for n, _ in model.named_modules()
+            if re.search(target_pattern, n)
+        ]
+        log(f"LoRA target pattern: {target_pattern}")
+        log(f"Matched modules:     {len(matched_modules)}")
+        if matched_modules:
+            log(f"  Sample: {matched_modules[:4]}")
         else:
-            images.append(PILImage.open(str(img_path)).convert("RGB"))
-            log(f"  Loaded: {img_rel}")
+            log("FATAL: No modules matched the LoRA target pattern!")
+            all_ok = False
 
-    # Build prompt
-    image_tags = "".join("<image>\n" for _ in images)
-    question = first_record["question"]
-    answer = first_record["answer"]
-    prompt = f"USER: {image_tags}{question}\nASSISTANT: {answer}"
-    log(f"Prompt length:  {len(prompt)} chars")
+        # Attach LoRA
+        log("\nAttaching LoRA...")
+        from peft import LoraConfig, get_peft_model
 
-    # Tokenize
-    if images:
-        inputs = processor(text=prompt, images=images, return_tensors="pt", padding=True)
-    else:
-        inputs = processor(text=prompt, return_tensors="pt", padding=True)
+        peft_config = LoraConfig(
+            r=lora_cfg["r"],
+            lora_alpha=lora_cfg["alpha"],
+            lora_dropout=lora_cfg["dropout"],
+            target_modules=lora_cfg["target_modules"],
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, peft_config)
+        model.gradient_checkpointing_enable()
+        model.enable_input_require_grads()
 
-    inputs = {k: v.to("cuda") if hasattr(v, "to") else v for k, v in inputs.items()}
-    if "pixel_values" in inputs:
-        inputs["pixel_values"] = inputs["pixel_values"].to(torch.float16)
+        trainable_params, all_params = model.get_nb_trainable_parameters()
+        log(f"Trainable parameters: {trainable_params:,} / {all_params:,}")
+        log(f"Trainable percentage: {100 * trainable_params / all_params:.4f}%")
 
-    # Labels
-    labels = inputs["input_ids"].clone()
-    if processor.tokenizer.pad_token_id is not None:
-        labels[labels == processor.tokenizer.pad_token_id] = -100
-    inputs["labels"] = labels
+        vram_after_lora = torch.cuda.memory_allocated()
+        log(f"VRAM after LoRA:      {fmt_mb(vram_after_lora)}")
 
-    log(f"Input IDs shape: {inputs['input_ids'].shape}")
-    if "pixel_values" in inputs:
-        log(f"Pixel values shape: {inputs['pixel_values'].shape}")
+        if trainable_params < 1_000_000:
+            log("WARNING: Trainable parameters seem too low!")
+            all_ok = False
 
-    torch.cuda.reset_peak_memory_stats()
-    vram_before_fwd = torch.cuda.memory_allocated()
+        # ----------------------------------------------------------------
+        # STEP 4: Real forward pass
+        # ----------------------------------------------------------------
+        log("\n--- STEP 4: Real forward pass ---")
 
-    model.eval()
-    t_start = time.time()
-    with torch.no_grad():
-        outputs = model(**inputs)
-    t_fwd = time.time() - t_start
+        # Load one actual training example
+        train_jsonl = vlm_dir / "data" / "unified" / "train.jsonl"
+        with open(train_jsonl) as f:
+            first_record = json.loads(f.readline())
 
-    vram_after_fwd = torch.cuda.memory_allocated()
-    vram_peak = torch.cuda.max_memory_allocated()
-    loss_val = outputs.loss.item() if outputs.loss is not None else "N/A"
+        log(f"Record ID:      {first_record['id']}")
+        log(f"Task:           {first_record['task']}")
+        log(f"Source:         {first_record['source_dataset']}")
+        log(f"Image count:    {len(first_record.get('images', []))}")
 
-    log(f"\nForward pass results:")
-    log(f"  Loss:              {loss_val}")
-    log(f"  Inference time:    {t_fwd:.2f}s")
-    log(f"  VRAM before fwd:   {fmt_mb(vram_before_fwd)}")
-    log(f"  VRAM after fwd:    {fmt_mb(vram_after_fwd)}")
-    log(f"  VRAM peak:         {fmt_mb(vram_peak)}")
-    log(f"  VRAM headroom:     {fmt_mb(total_vram - vram_peak)}")
+        # Load images
+        from PIL import Image as PILImage
+        images = []
+        for img_rel in first_record.get("images", []):
+            img_path = Path(img_rel)
+            if not img_path.is_absolute() and img_path.parts and img_path.parts[0] == "data":
+                img_path = vlm_dir / img_path
+            if not img_path.exists():
+                log(f"FATAL: Image not found: {img_path}")
+                all_ok = False
+            else:
+                images.append(PILImage.open(str(img_path)).convert("RGB"))
+                log(f"  Loaded: {img_rel}")
 
-    # Clean up forward pass tensors
-    del outputs, inputs, labels
-    gc.collect()
-    torch.cuda.empty_cache()
+        # Build prompt
+        image_tags = "".join("<image>\n" for _ in images)
+        question = first_record["question"]
+        answer = first_record["answer"]
+        prompt = f"USER: {image_tags}{question}\nASSISTANT: {answer}"
+        log(f"Prompt length:  {len(prompt)} chars")
 
-    # ----------------------------------------------------------------
+        # Tokenize
+        if images:
+            inputs = processor(text=prompt, images=images, return_tensors="pt", padding=True)
+        else:
+            inputs = processor(text=prompt, return_tensors="pt", padding=True)
+
+        inputs = {k: v.to("cuda") if hasattr(v, "to") else v for k, v in inputs.items()}
+        if "pixel_values" in inputs:
+            inputs["pixel_values"] = inputs["pixel_values"].to(torch.float16)
+
+        # Labels
+        labels = inputs["input_ids"].clone()
+        if processor.tokenizer.pad_token_id is not None:
+            labels[labels == processor.tokenizer.pad_token_id] = -100
+        inputs["labels"] = labels
+
+        log(f"Input IDs shape: {inputs['input_ids'].shape}")
+        if "pixel_values" in inputs:
+            log(f"Pixel values shape: {inputs['pixel_values'].shape}")
+
+        torch.cuda.reset_peak_memory_stats()
+        vram_before_fwd = torch.cuda.memory_allocated()
+
+        model.eval()
+        t_start = time.time()
+        with torch.no_grad():
+            outputs = model(**inputs)
+        t_fwd = time.time() - t_start
+
+        vram_after_fwd = torch.cuda.memory_allocated()
+        vram_peak = torch.cuda.max_memory_allocated()
+        loss_val = outputs.loss.item() if outputs.loss is not None else "N/A"
+
+        log(f"\nForward pass results:")
+        log(f"  Loss:              {loss_val}")
+        log(f"  Inference time:    {t_fwd:.2f}s")
+        log(f"  VRAM before fwd:   {fmt_mb(vram_before_fwd)}")
+        log(f"  VRAM after fwd:    {fmt_mb(vram_after_fwd)}")
+        log(f"  VRAM peak:         {fmt_mb(vram_peak)}")
+        log(f"  VRAM headroom:     {fmt_mb(total_vram - vram_peak)}")
+
+        # Clean up forward pass tensors
+        del outputs, inputs, labels
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        # ----------------------------------------------------------------
     # STEP 5: Code inspection checks
     # ----------------------------------------------------------------
     log("\n--- STEP 5: Code inspection ---")
+    
+    config_path = vlm_dir / "config.yaml"
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
 
     issues = []
 
@@ -308,8 +318,9 @@ def main():
 
     # Check config max_steps
     t_cfg = config["training"]
-    if t_cfg.get("max_steps", 0) <= 10:
-        issues.append(f"config.yaml: max_steps={t_cfg.get('max_steps')} is smoke-test value, not real training")
+    max_steps_val = t_cfg.get("max_steps", -1)
+    if max_steps_val != -1 and max_steps_val <= 10:
+        issues.append(f"config.yaml: max_steps={max_steps_val} is smoke-test value, not real training")
 
     for iss in issues:
         log(f"  WARNING: {iss}")
@@ -340,6 +351,7 @@ def main():
     # ----------------------------------------------------------------
     log("\n--- STEP 7: T4 Training Recommendations ---")
 
+    vram_peak = vram_peak if 'vram_peak' in locals() else 0
     vram_free = total_vram - vram_peak
     log(f"Total VRAM:      {fmt_gb(total_vram)}")
     log(f"Peak used (fwd): {fmt_mb(vram_peak)}")

@@ -141,24 +141,40 @@ def main():
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(config["training"]["learning_rate"]))
     
-    if args.resume_from_checkpoint:
-        opt_path = os.path.join(args.resume_from_checkpoint, "optimizer.pt")
-        if os.path.exists(opt_path):
-            optimizer.load_state_dict(torch.load(opt_path))
-            print("Optimizer state restored.")
-    
-    print("\n--- TRAINING ---")
-    model.train()
-    start_time = time.time()
-    
     # Training Loop configurations
     steps = config["training"].get("max_steps", -1)
     save_steps = config["training"].get("save_steps", 500)
     logging_steps = config["training"].get("logging_steps", 10)
     grad_accum_steps = config["training"].get("gradient_accumulation_steps", 1)
-    
-    # Total examples = epochs * loader length
+    max_grad_norm = config["training"].get("max_grad_norm", 1.0)
+    warmup_ratio = config["training"].get("warmup_ratio", 0.03)
     total_epochs = config["training"].get("num_train_epochs", 1)
+
+    import math
+    from transformers import get_linear_schedule_with_warmup
+    total_optimizer_steps = math.ceil(len(loader) / grad_accum_steps) * total_epochs
+    if steps > 0:
+        total_optimizer_steps = min(total_optimizer_steps, steps)
+        
+    warmup_steps = int(total_optimizer_steps * warmup_ratio)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_optimizer_steps)
+    
+    if args.resume_from_checkpoint:
+        opt_path = os.path.join(args.resume_from_checkpoint, "optimizer.pt")
+        if os.path.exists(opt_path):
+            optimizer.load_state_dict(torch.load(opt_path))
+            print("Optimizer state restored.")
+        # NOTE: For perfect resume, we should also save/load scheduler state, but this suffices for the MVP.
+    
+    print(f"Total Epochs: {total_epochs}")
+    print(f"Batches per epoch: {len(loader)}")
+    print(f"Gradient Accumulation: {grad_accum_steps}")
+    print(f"Total Optimizer Updates: {total_optimizer_steps}")
+    print(f"Warmup Steps: {warmup_steps}")
+    
+    print("\n--- TRAINING ---")
+    model.train()
+    start_time = time.time()
     
     step = 0
     global_step = 0
@@ -185,11 +201,16 @@ def main():
             accumulated_loss += loss.item()
             
             if (i + 1) % grad_accum_steps == 0 or (i + 1) == len(loader):
+                if max_grad_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                    
                 optimizer.step()
+                scheduler.step()
                 optimizer.zero_grad()
                 
                 if (global_step + 1) % logging_steps == 0:
-                    print(f"Epoch {epoch+1}/{total_epochs} | Global Step {global_step+1} | Loss: {accumulated_loss:.4f}")
+                    lr = scheduler.get_last_lr()[0]
+                    print(f"Epoch {epoch+1}/{total_epochs} | Global Step {global_step+1} | Loss: {accumulated_loss:.4f} | LR: {lr:.2e}")
                 
                 accumulated_loss = 0.0
                 

@@ -49,4 +49,7 @@ training:
   max_steps: -1
   save_steps: 50
   logging_steps: 5
+  max_grad_norm: 1.0
+  warmup_ratio: 0.03
+  fp16: true
   output_dir: "checkpoints/final_adapter"
