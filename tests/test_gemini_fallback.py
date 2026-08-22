@@ -233,3 +233,31 @@ def test_gemini_api_timeout(dummy_images, monkeypatch):
         assert res["metadata"]["fallback_used"] is False
         assert res["metadata"]["fallback_error"] == "timeout"
         assert res["metadata"]["status"] == "error"
+
+def test_gemini_model_selection(dummy_images, monkeypatch):
+    monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake_key")
+    
+    with patch("inference.VLMRunner.get_instance") as mock_runner:
+        mock_instance = MagicMock()
+        mock_instance.infer.side_effect = RuntimeError("Primary Fail")
+        mock_runner.return_value = mock_instance
+        
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.text = "Gemini answer"
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
+        
+        # Test Default
+        monkeypatch.delenv("GEMINI_MODEL", raising=False)
+        res = vlm_answer(dummy_images[0], "What is this?", task="vqa")
+        
+        args, kwargs = mock_client.models.generate_content.call_args
+        assert kwargs["model"] == "gemini-3.5-flash-lite"
+        
+        # Test Override
+        monkeypatch.setenv("GEMINI_MODEL", "gemini-2.0-pro")
+        res2 = vlm_answer(dummy_images[0], "What is this?", task="vqa")
+        args2, kwargs2 = mock_client.models.generate_content.call_args
+        assert kwargs2["model"] == "gemini-2.0-pro"

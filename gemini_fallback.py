@@ -18,7 +18,7 @@ def gemini_answer(
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set")
         
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
     timeout = int(os.environ.get("GEMINI_TIMEOUT_SECONDS", "60"))
     
     if len(images) > 2:

@@ -100,7 +100,7 @@ The fallback is disabled by default. To enable it, set the following environment
 
 - `GEMINI_FALLBACK_ENABLED=true`
 - `GEMINI_API_KEY=<your_api_key>` (Never hard-code or commit this key)
-- `GEMINI_MODEL=gemini-1.5-flash` (Optional, defaults to gemini-1.5-flash)
+- `GEMINI_MODEL=gemini-3.5-flash-lite` (Optional, defaults to gemini-3.5-flash-lite)
 - `GEMINI_TIMEOUT_SECONDS=30` (Optional, defaults to 30)
 - `GEMINI_HIGH_RISK_TASKS=change_vqa,grounding` (Optional, comma-separated tasks that always trigger fallback)
 
