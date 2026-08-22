@@ -12,7 +12,7 @@ def gemini_answer(
     task: Optional[str] = None
 ) -> dict:
     """
-    Fallback Gemini verification path.
+    Fallback Gemini verification path using the new google-genai SDK.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -25,28 +25,28 @@ def gemini_answer(
         raise ValueError("Max 2 images supported")
         
     try:
-        import google.generativeai as genai
+        from google import genai
+        from google.genai import types
     except ImportError:
-        raise RuntimeError("google-generativeai package not installed")
+        raise RuntimeError("google-genai package not installed")
         
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
+    client = genai.Client(api_key=api_key, http_options={'timeout': timeout})
     
-    prompt_parts = []
+    contents = []
     if evidence:
-        prompt_parts.append(f"Context: {evidence}")
-    prompt_parts.append(f"Question: {question}")
-    prompt_parts.extend(images)
+        contents.append(f"Context: {evidence}")
+    contents.append(f"Question: {question}")
+    contents.extend(images)
     
-    generation_config = genai.types.GenerationConfig(
+    config = types.GenerateContentConfig(
         max_output_tokens=256
     )
     
     try:
-        response = model.generate_content(
-            prompt_parts,
-            generation_config=generation_config,
-            request_options={"timeout": timeout}
+        response = client.models.generate_content(
+            model=model_name,
+            contents=contents,
+            config=config
         )
         text = response.text.strip()
     except Exception as e:

@@ -8,9 +8,17 @@ from PIL import Image
 from inference import vlm_answer
 from gemini_fallback import gemini_answer
 
-# Create a mock for google.generativeai
+# Create mocks for google-genai
+mock_google = MagicMock()
 mock_genai = MagicMock()
-sys.modules["google.generativeai"] = mock_genai
+mock_types = MagicMock()
+
+sys.modules["google"] = mock_google
+sys.modules["google.genai"] = mock_genai
+sys.modules["google.genai.types"] = mock_types
+
+# Expose genai within google
+mock_google.genai = mock_genai
 
 @pytest.fixture
 def dummy_images(tmp_path):
@@ -50,11 +58,11 @@ def test_gemini_called_on_primary_failure(dummy_images, monkeypatch):
         mock_instance.infer.side_effect = RuntimeError("GPU OOM")
         mock_runner.return_value = mock_instance
         
-        mock_gen_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Gemini answer"
-        mock_gen_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_gen_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
         
         res = vlm_answer(dummy_images[0], "What is this?", task="vqa")
         
@@ -102,20 +110,20 @@ def test_gemini_receives_both_images_for_change_vqa(dummy_images, monkeypatch):
         }
         mock_runner.return_value = mock_instance
         
-        mock_gen_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Gemini answer"
-        mock_gen_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_gen_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
         
         res = vlm_answer(dummy_images, "Changed?", task="change_vqa")
         
-        mock_gen_model.generate_content.assert_called_once()
-        args, kwargs = mock_gen_model.generate_content.call_args
-        prompt_parts = args[0]
-        assert len(prompt_parts) == 3
-        assert isinstance(prompt_parts[1], Image.Image)
-        assert isinstance(prompt_parts[2], Image.Image)
+        mock_client.models.generate_content.assert_called_once()
+        args, kwargs = mock_client.models.generate_content.call_args
+        contents = kwargs["contents"]
+        assert len(contents) == 3
+        assert isinstance(contents[1], Image.Image)
+        assert isinstance(contents[2], Image.Image)
 
 def test_gemini_receives_evidence(dummy_images, monkeypatch):
     monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
@@ -126,11 +134,11 @@ def test_gemini_receives_evidence(dummy_images, monkeypatch):
         mock_instance.infer.side_effect = RuntimeError("Fail")
         mock_runner.return_value = mock_instance
         
-        mock_gen_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Gemini answer"
-        mock_gen_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_gen_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
         
         evidence = {
             "type": "change_detection",
@@ -140,10 +148,10 @@ def test_gemini_receives_evidence(dummy_images, monkeypatch):
         
         res = vlm_answer(dummy_images[0], "What?", evidence=evidence, task="vqa")
         
-        args, kwargs = mock_gen_model.generate_content.call_args
-        prompt_parts = args[0]
-        assert any("Context:" in str(p) for p in prompt_parts)
-        assert any("north" in str(p) for p in prompt_parts)
+        args, kwargs = mock_client.models.generate_content.call_args
+        contents = kwargs["contents"]
+        assert any("Context:" in str(p) for p in contents)
+        assert any("north" in str(p) for p in contents)
 
 def test_gemini_missing_api_key(dummy_images, monkeypatch):
     monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
@@ -169,9 +177,9 @@ def test_gemini_api_failure(dummy_images, monkeypatch):
         mock_instance.infer.side_effect = RuntimeError("Primary Fail")
         mock_runner.return_value = mock_instance
         
-        mock_gen_model = MagicMock()
-        mock_gen_model.generate_content.side_effect = Exception("API Server Down")
-        mock_genai.GenerativeModel.return_value = mock_gen_model
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = Exception("API Server Down")
+        mock_genai.Client.return_value = mock_client
         
         res = vlm_answer(dummy_images[0], "What is this?", task="vqa")
         
@@ -188,11 +196,11 @@ def test_json_serialization(dummy_images, monkeypatch):
         mock_instance.infer.side_effect = RuntimeError("Primary Fail")
         mock_runner.return_value = mock_instance
         
-        mock_gen_model = MagicMock()
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Gemini answer"
-        mock_gen_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_gen_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
         
         res = vlm_answer(dummy_images[0], "What is this?", task="vqa")
         
