@@ -18,8 +18,8 @@ def preflight_check():
     # 2. VRAM
     vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
     print(f"INFO: Detected VRAM: {vram_gb:.2f} GB")
-    if vram_gb < 15.0:
-        print("WARNING: VRAM is less than 16GB. Full training might OOM or heavily swap.")
+    if vram_gb < 14.0:
+        print("WARNING: VRAM is less than 14GB. Full training might OOM or heavily swap.")
     else:
         print("OK: Sufficient VRAM detected.")
         
@@ -58,6 +58,7 @@ def preflight_check():
 def main():
     parser = argparse.ArgumentParser(description="SatQuery VLM LoRA Trainer")
     parser.add_argument("--preflight", action="store_true", help="Run system checks and exit")
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to checkpoint directory to resume from")
     args = parser.parse_args()
     
     if args.preflight:
@@ -110,7 +111,13 @@ def main():
         target_modules=lora_cfg["target_modules"],
         task_type="CAUSAL_LM"
     )
-    model = get_peft_model(model, peft_config)
+    
+    if args.resume_from_checkpoint:
+        print(f"Resuming from checkpoint: {args.resume_from_checkpoint}")
+        # When resuming PEFT, we load the adapter onto the base model
+        model = PeftModel.from_pretrained(model, args.resume_from_checkpoint, is_trainable=True)
+    else:
+        model = get_peft_model(model, peft_config)
     
     # Enable gradient checkpointing to save VRAM
     model.gradient_checkpointing_enable()
@@ -121,19 +128,34 @@ def main():
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(config["training"]["learning_rate"]))
     
+    if args.resume_from_checkpoint:
+        opt_path = os.path.join(args.resume_from_checkpoint, "optimizer.pt")
+        if os.path.exists(opt_path):
+            optimizer.load_state_dict(torch.load(opt_path))
+            print("Optimizer state restored.")
+    
     print("\n--- TRAINING ---")
     model.train()
     start_time = time.time()
     
-    steps = config["training"].get("max_steps", 1000)
+    # Training Loop configurations
+    steps = config["training"].get("max_steps", -1)
     save_steps = config["training"].get("save_steps", 500)
-    step = 0
-    initial_loss = None
-    final_loss = None
+    logging_steps = config["training"].get("logging_steps", 10)
+    grad_accum_steps = config["training"].get("gradient_accumulation_steps", 1)
     
-    for epoch in range(config["training"].get("num_train_epochs", 1)):
+    # Total examples = epochs * loader length
+    total_epochs = config["training"].get("num_train_epochs", 1)
+    
+    step = 0
+    global_step = 0
+    initial_loss = None
+    accumulated_loss = 0.0
+    
+    for epoch in range(total_epochs):
         for i, batch in enumerate(loader):
-            if step >= steps: break
+            if steps > 0 and global_step >= steps: 
+                break
             
             inputs = {k: v.to('cuda') if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
             # Ensure float16 for images
@@ -141,31 +163,42 @@ def main():
                 inputs["pixel_values"] = inputs["pixel_values"].to(torch.float16)
                 
             outputs = model(**inputs)
-            loss = outputs.loss
+            loss = outputs.loss / grad_accum_steps
             
-            if initial_loss is None: initial_loss = loss.item()
-            final_loss = loss.item()
-            
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-            
-            print(f"Step {step+1}/{steps} | Loss: {loss.item():.4f}")
-            
-            if (step + 1) % save_steps == 0:
-                ckpt_dir = os.path.join(out_dir, f"checkpoint-{step+1}")
-                print(f"Saving intermediate checkpoint to {ckpt_dir}...")
-                model.save_pretrained(ckpt_dir)
+            if initial_loss is None: 
+                initial_loss = loss.item() * grad_accum_steps
                 
+            loss.backward()
+            accumulated_loss += loss.item()
+            
+            if (i + 1) % grad_accum_steps == 0 or (i + 1) == len(loader):
+                optimizer.step()
+                optimizer.zero_grad()
+                
+                if (global_step + 1) % logging_steps == 0:
+                    print(f"Epoch {epoch+1}/{total_epochs} | Global Step {global_step+1} | Loss: {accumulated_loss:.4f}")
+                
+                accumulated_loss = 0.0
+                
+                if (global_step + 1) % save_steps == 0:
+                    ckpt_dir = os.path.join(out_dir, f"checkpoint-{global_step+1}")
+                    print(f"Saving intermediate checkpoint to {ckpt_dir}...")
+                    model.save_pretrained(ckpt_dir)
+                    torch.save(optimizer.state_dict(), os.path.join(ckpt_dir, "optimizer.pt"))
+                
+                global_step += 1
+            
             step += 1
             
-        if step >= steps: break
+        if steps > 0 and global_step >= steps: 
+            break
 
     runtime = time.time() - start_time
     
     print(f"\nSaving final checkpoint to {out_dir}...")
     model.save_pretrained(out_dir)
-    print("TRAINING COMPLETE!")
+    torch.save(optimizer.state_dict(), os.path.join(out_dir, "optimizer.pt"))
+    print(f"TRAINING COMPLETE! Time: {runtime:.2f}s")
     
 if __name__ == "__main__":
     main()
