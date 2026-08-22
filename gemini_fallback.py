@@ -36,11 +36,29 @@ def gemini_answer(
     )
     client = genai.Client(api_key=api_key, http_options=http_options)
     
+    import io
+    
     contents = []
     if evidence:
         contents.append(f"Context: {evidence}")
     contents.append(f"Question: {question}")
-    contents.extend(images)
+    
+    for img in images:
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+            
+        max_dim = 1024
+        if max(img.width, img.height) > max_dim:
+            ratio = max_dim / max(img.width, img.height)
+            new_size = (int(img.width * ratio), int(img.height * ratio))
+            img = img.resize(new_size, Image.Resampling.LANCZOS)
+            
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=85)
+        jpeg_bytes = buffer.getvalue()
+        
+        part = types.Part.from_bytes(data=jpeg_bytes, mime_type="image/jpeg")
+        contents.append(part)
     
     config = types.GenerateContentConfig(
         max_output_tokens=256

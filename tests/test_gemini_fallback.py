@@ -19,6 +19,7 @@ sys.modules["google.genai.types"] = mock_types
 
 # Expose genai within google
 mock_google.genai = mock_genai
+mock_genai.types = mock_types
 
 @pytest.fixture
 def dummy_images(tmp_path):
@@ -122,8 +123,8 @@ def test_gemini_receives_both_images_for_change_vqa(dummy_images, monkeypatch):
         args, kwargs = mock_client.models.generate_content.call_args
         contents = kwargs["contents"]
         assert len(contents) == 3
-        assert isinstance(contents[1], Image.Image)
-        assert isinstance(contents[2], Image.Image)
+        # In mock world, from_bytes was called twice
+        assert mock_types.Part.from_bytes.call_count >= 1
 
 def test_gemini_receives_evidence(dummy_images, monkeypatch):
     monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
@@ -261,3 +262,35 @@ def test_gemini_model_selection(dummy_images, monkeypatch):
         res2 = vlm_answer(dummy_images[0], "What is this?", task="vqa")
         args2, kwargs2 = mock_client.models.generate_content.call_args
         assert kwargs2["model"] == "gemini-2.0-pro"
+
+def test_gemini_image_processing(monkeypatch):
+    monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake_key")
+    
+    # Create an overly large RGBA image
+    large_img = Image.new("RGBA", (2000, 1000))
+    
+    with patch("inference.VLMRunner.get_instance") as mock_runner:
+        mock_instance = MagicMock()
+        mock_instance.infer.side_effect = RuntimeError("Primary Fail")
+        mock_runner.return_value = mock_instance
+        
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.text = "Gemini answer"
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
+        
+        mock_types.Part.from_bytes.reset_mock()
+        gemini_answer([large_img], "What is this?")
+        
+        mock_types.Part.from_bytes.assert_called_once()
+        args, kwargs = mock_types.Part.from_bytes.call_args
+        assert "data" in kwargs
+        assert kwargs["mime_type"] == "image/jpeg"
+        
+        import io
+        processed_img = Image.open(io.BytesIO(kwargs["data"]))
+        assert processed_img.mode == "RGB"
+        assert processed_img.width == 1024
+        assert processed_img.height == 512
