@@ -1,0 +1,171 @@
+import os
+import sys
+import yaml
+import torch
+import time
+import argparse
+from pathlib import Path
+
+def preflight_check():
+    print("Running Preflight Checks...")
+    
+    # 1. CUDA
+    if not torch.cuda.is_available():
+        print("ERROR: CUDA is not available.")
+        sys.exit(1)
+    print(f"OK: CUDA is available ({torch.cuda.get_device_name(0)})")
+    
+    # 2. VRAM
+    vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+    print(f"INFO: Detected VRAM: {vram_gb:.2f} GB")
+    if vram_gb < 15.0:
+        print("WARNING: VRAM is less than 16GB. Full training might OOM or heavily swap.")
+    else:
+        print("OK: Sufficient VRAM detected.")
+        
+    # 3. Dependencies
+    try:
+        import transformers
+        import peft
+        import bitsandbytes
+        import accelerate
+        from PIL import Image
+        print("OK: All core dependencies are installed.")
+    except ImportError as e:
+        print(f"ERROR: Missing dependency - {e}")
+        sys.exit(1)
+        
+    # 4. Dataset Files
+    vlm_dir = Path(__file__).parent
+    required_files = [
+        vlm_dir / "config.yaml",
+        vlm_dir / "data/unified/train.jsonl",
+        vlm_dir / "data/unified/val.jsonl",
+        vlm_dir / "data/unified/test.jsonl"
+    ]
+    for f in required_files:
+        if not f.exists():
+            print(f"ERROR: Missing required file: {f}")
+            sys.exit(1)
+    print("OK: Dataset manifests and config found.")
+    
+    # 5. Model Access (HuggingFace)
+    print("OK: Model access assumed (will download if not cached).")
+    
+    print("\nPreflight checks passed! You are ready to start training.")
+    sys.exit(0)
+
+def main():
+    parser = argparse.ArgumentParser(description="SatQuery VLM LoRA Trainer")
+    parser.add_argument("--preflight", action="store_true", help="Run system checks and exit")
+    args = parser.parse_args()
+    
+    if args.preflight:
+        preflight_check()
+        
+    from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
+    from peft import LoraConfig, get_peft_model, PeftModel
+    from torch.utils.data import DataLoader
+    from dataset import VLMDataset, DataCollator
+
+    vlm_dir = Path(__file__).parent
+    config_path = vlm_dir / "config.yaml"
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+        
+    out_dir = vlm_dir / config["training"]["output_dir"].replace("vlm/", "")
+    os.makedirs(out_dir, exist_ok=True)
+    
+    print("Loading processor...")
+    processor = AutoProcessor.from_pretrained('llava-hf/llava-1.5-7b-hf')
+    processor.tokenizer.pad_token = processor.tokenizer.eos_token
+    
+    print("Loading datasets...")
+    train_jsonl = vlm_dir / "data/unified/train.jsonl"
+    train_ds = VLMDataset(str(train_jsonl), processor)
+    print(f"Dataset size: {len(train_ds)}")
+    
+    collator = DataCollator(processor)
+    loader = DataLoader(train_ds, batch_size=config["training"]["batch_size"], shuffle=True, collate_fn=collator)
+    
+    print("Loading model in 4-bit...")
+    q_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+    )
+    model = LlavaForConditionalGeneration.from_pretrained(
+        'llava-hf/llava-1.5-7b-hf',
+        quantization_config=q_config,
+        device_map={"": 0}
+    )
+    
+    print("\n--- ATTACHING LORA ---")
+    lora_cfg = config["lora"]
+    peft_config = LoraConfig(
+        r=lora_cfg["r"],
+        lora_alpha=lora_cfg["alpha"],
+        lora_dropout=lora_cfg["dropout"],
+        target_modules=lora_cfg["target_modules"],
+        task_type="CAUSAL_LM"
+    )
+    model = get_peft_model(model, peft_config)
+    
+    # Enable gradient checkpointing to save VRAM
+    model.gradient_checkpointing_enable()
+    model.enable_input_require_grads()
+    
+    trainable_params, all_param = model.get_nb_trainable_parameters()
+    print(f"Trainable: {trainable_params} / {all_param} ({100 * trainable_params / all_param:.4f}%)")
+    
+    optimizer = torch.optim.AdamW(model.parameters(), lr=float(config["training"]["learning_rate"]))
+    
+    print("\n--- TRAINING ---")
+    model.train()
+    start_time = time.time()
+    
+    steps = config["training"].get("max_steps", 1000)
+    save_steps = config["training"].get("save_steps", 500)
+    step = 0
+    initial_loss = None
+    final_loss = None
+    
+    for epoch in range(config["training"].get("num_train_epochs", 1)):
+        for i, batch in enumerate(loader):
+            if step >= steps: break
+            
+            inputs = {k: v.to('cuda') if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
+            # Ensure float16 for images
+            if "pixel_values" in inputs:
+                inputs["pixel_values"] = inputs["pixel_values"].to(torch.float16)
+                
+            outputs = model(**inputs)
+            loss = outputs.loss
+            
+            if initial_loss is None: initial_loss = loss.item()
+            final_loss = loss.item()
+            
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            
+            print(f"Step {step+1}/{steps} | Loss: {loss.item():.4f}")
+            
+            if (step + 1) % save_steps == 0:
+                ckpt_dir = os.path.join(out_dir, f"checkpoint-{step+1}")
+                print(f"Saving intermediate checkpoint to {ckpt_dir}...")
+                model.save_pretrained(ckpt_dir)
+                
+            step += 1
+            
+        if step >= steps: break
+
+    runtime = time.time() - start_time
+    
+    print(f"\nSaving final checkpoint to {out_dir}...")
+    model.save_pretrained(out_dir)
+    print("TRAINING COMPLETE!")
+    
+if __name__ == "__main__":
+    main()

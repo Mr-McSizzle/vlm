@@ -1,0 +1,142 @@
+[
+  {
+    "id": "general_01",
+    "category": "general",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Describe this satellite image in one or two sentences."
+  },
+  {
+    "id": "general_02",
+    "category": "general",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "What are the main visible features in this satellite scene?"
+  },
+  {
+    "id": "general_03",
+    "category": "general",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "What appears to be the dominant land use or land cover in this image?"
+  },
+  {
+    "id": "landcover_01",
+    "category": "land_cover",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "What are the major land-cover types visible in this image?"
+  },
+  {
+    "id": "landcover_02",
+    "category": "land_cover",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Is vegetation visible in this satellite image? Describe where it appears."
+  },
+  {
+    "id": "landcover_03",
+    "category": "land_cover",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Are agricultural fields visible? If so, where are they?"
+  },
+  {
+    "id": "landcover_04",
+    "category": "land_cover",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Are built-up or urban areas visible? Describe where they occur."
+  },
+  {
+    "id": "water_01",
+    "category": "water",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Is there a water body visible in this image?"
+  },
+  {
+    "id": "water_02",
+    "category": "water",
+    "task": "grounding",
+    "expected_images": 1,
+    "question": "Where is the most prominent water body in the image?"
+  },
+  {
+    "id": "water_03",
+    "category": "water",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "What visual evidence suggests the presence of water in this scene?"
+  },
+  {
+    "id": "urban_01",
+    "category": "urban",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Are roads or transportation features visible?"
+  },
+  {
+    "id": "urban_02",
+    "category": "urban",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Are there dense urban or built-up regions in the image?"
+  },
+  {
+    "id": "urban_03",
+    "category": "urban",
+    "task": "grounding",
+    "expected_images": 1,
+    "question": "Where is the main built-up region in the image?"
+  },
+  {
+    "id": "agriculture_01",
+    "category": "agriculture",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "Is agricultural land visible in this scene?"
+  },
+  {
+    "id": "agriculture_02",
+    "category": "agriculture",
+    "task": "vqa",
+    "expected_images": 1,
+    "question": "What vegetation or agricultural patterns are visible?"
+  },
+  {
+    "id": "agriculture_03",
+    "category": "agriculture",
+    "task": "grounding",
+    "expected_images": 1,
+    "question": "Which region appears to contain the most vegetation?"
+  },
+  {
+    "id": "change_01",
+    "category": "change",
+    "task": "change_vqa",
+    "expected_images": 2,
+    "question": "What changed between the earlier and later satellite images?"
+  },
+  {
+    "id": "change_02",
+    "category": "change",
+    "task": "change_vqa",
+    "expected_images": 2,
+    "question": "Where did the most noticeable change occur between the two images?"
+  },
+  {
+    "id": "change_03",
+    "category": "change",
+    "task": "change_vqa",
+    "expected_images": 2,
+    "question": "Did the built-up area increase, decrease, or remain approximately unchanged?"
+  },
+  {
+    "id": "change_04",
+    "category": "change",
+    "task": "change_vqa",
+    "expected_images": 2,
+    "question": "Describe the main land-cover or land-use change between the two dates."
+  }
+]

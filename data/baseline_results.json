@@ -1,0 +1,402 @@
+[
+  {
+    "question_id": "general_01",
+    "category": "general",
+    "task": "vqa",
+    "question": "Describe this satellite image in one or two sentences.",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The image is a red background with no visible objects.",
+    "parsed_answer": "The image is a red background with no visible objects.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 24.17
+  },
+  {
+    "question_id": "general_02",
+    "category": "general",
+    "task": "vqa",
+    "question": "What are the main visible features in this satellite scene?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The main visible features in this satellite scene are a red background and a large, empty space.",
+    "parsed_answer": "The main visible features in this satellite scene are a red background and a large, empty space.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 23.73
+  },
+  {
+    "question_id": "general_03",
+    "category": "general",
+    "task": "vqa",
+    "question": "What appears to be the dominant land use or land cover in this image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The dominant land use or land cover in this image is a large, flat, red surface.",
+    "parsed_answer": "The dominant land use or land cover in this image is a large, flat, red surface.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 23.3
+  },
+  {
+    "question_id": "landcover_01",
+    "category": "land_cover",
+    "task": "vqa",
+    "question": "What are the major land-cover types visible in this image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The image shows a red background with a few small patches of green.",
+    "parsed_answer": "The image shows a red background with a few small patches of green.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 22.49
+  },
+  {
+    "question_id": "landcover_02",
+    "category": "land_cover",
+    "task": "vqa",
+    "question": "Is vegetation visible in this satellite image? Describe where it appears.",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No, there is no vegetation visible in this satellite image.",
+    "parsed_answer": "No, there is no vegetation visible in this satellite image.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 22.82
+  },
+  {
+    "question_id": "landcover_03",
+    "category": "land_cover",
+    "task": "vqa",
+    "question": "Are agricultural fields visible? If so, where are they?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No, agricultural fields are not visible in the image.",
+    "parsed_answer": "No, agricultural fields are not visible in the image.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 22.22
+  },
+  {
+    "question_id": "landcover_04",
+    "category": "land_cover",
+    "task": "vqa",
+    "question": "Are built-up or urban areas visible? Describe where they occur.",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No built-up or urban areas are visible in the image. The image shows a large, red, empty field with no signs of human activity or infrastructure.",
+    "parsed_answer": "No built-up or urban areas are visible in the image. The image shows a large, red, empty field with no signs of human activity or infrastructure.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 25.86
+  },
+  {
+    "question_id": "water_01",
+    "category": "water",
+    "task": "vqa",
+    "question": "Is there a water body visible in this image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No",
+    "parsed_answer": "No",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 20.15
+  },
+  {
+    "question_id": "water_02",
+    "category": "water",
+    "task": "grounding",
+    "question": "Where is the most prominent water body in the image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The most prominent water body in the image is the ocean.",
+    "parsed_answer": "The most prominent water body in the image is the ocean.",
+    "regions": [],
+    "grounding_parse_status": "not_available",
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 26.16
+  },
+  {
+    "question_id": "water_03",
+    "category": "water",
+    "task": "vqa",
+    "question": "What visual evidence suggests the presence of water in this scene?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "There is no visual evidence of water in this scene.",
+    "parsed_answer": "There is no visual evidence of water in this scene.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 22.08
+  },
+  {
+    "question_id": "urban_01",
+    "category": "urban",
+    "task": "vqa",
+    "question": "Are roads or transportation features visible?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No",
+    "parsed_answer": "No",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 20.03
+  },
+  {
+    "question_id": "urban_02",
+    "category": "urban",
+    "task": "vqa",
+    "question": "Are there dense urban or built-up regions in the image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No",
+    "parsed_answer": "No",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 20.38
+  },
+  {
+    "question_id": "urban_03",
+    "category": "urban",
+    "task": "grounding",
+    "question": "Where is the main built-up region in the image?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The main built-up region in the image is located in the upper-left corner.",
+    "parsed_answer": "The main built-up region in the image is located in the upper-left corner.",
+    "regions": [],
+    "grounding_parse_status": "not_available",
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 27.67
+  },
+  {
+    "question_id": "agriculture_01",
+    "category": "agriculture",
+    "task": "vqa",
+    "question": "Is agricultural land visible in this scene?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "No",
+    "parsed_answer": "No",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 20.07
+  },
+  {
+    "question_id": "agriculture_02",
+    "category": "agriculture",
+    "task": "vqa",
+    "question": "What vegetation or agricultural patterns are visible?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "There are no visible vegetation or agricultural patterns in the image.",
+    "parsed_answer": "There are no visible vegetation or agricultural patterns in the image.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 22.47
+  },
+  {
+    "question_id": "agriculture_03",
+    "category": "agriculture",
+    "task": "grounding",
+    "question": "Which region appears to contain the most vegetation?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The region with the most vegetation is the southwest corner.",
+    "parsed_answer": "The region with the most vegetation is the southwest corner.",
+    "regions": [],
+    "grounding_parse_status": "not_available",
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 26.61
+  },
+  {
+    "question_id": "change_01",
+    "category": "change",
+    "task": "change_vqa",
+    "question": "What changed between the earlier and later satellite images?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The color of the sky in the later satellite image is red, while in the earlier image, the sky is blue.",
+    "parsed_answer": "The color of the sky in the later satellite image is red, while in the earlier image, the sky is blue.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 53.05
+  },
+  {
+    "question_id": "change_02",
+    "category": "change",
+    "task": "change_vqa",
+    "question": "Where did the most noticeable change occur between the two images?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The most noticeable change between the two images is the color of the sky. In the earlier image, the sky is red, while in the later image, the sky is blue. This change in color suggests that the time of day has shifted, possibly due to the sun's position in the sky.",
+    "parsed_answer": "The most noticeable change between the two images is the color of the sky. In the earlier image, the sky is red, while in the later image, the sky is blue. This change in color suggests that the time of day has shifted, possibly due to the sun's position in the sky.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 65.11
+  },
+  {
+    "question_id": "change_03",
+    "category": "change",
+    "task": "change_vqa",
+    "question": "Did the built-up area increase, decrease, or remain approximately unchanged?",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The built-up area increased.",
+    "parsed_answer": "The built-up area increased.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 48.21
+  },
+  {
+    "question_id": "change_04",
+    "category": "change",
+    "task": "change_vqa",
+    "question": "Describe the main land-cover or land-use change between the two dates.",
+    "image_paths": [
+      "vlm/test.jpg",
+      "vlm/test.jpg"
+    ],
+    "model": "llava-hf/llava-1.5-7b-hf",
+    "adapter": null,
+    "raw_answer": "The main land-cover or land-use change between the two dates is the red color of the land.",
+    "parsed_answer": "The main land-cover or land-use change between the two dates is the red color of the land.",
+    "regions": [],
+    "grounding_parse_status": null,
+    "success": true,
+    "skipped": false,
+    "error": null,
+    "inference_time_seconds": 52.75
+  }
+]

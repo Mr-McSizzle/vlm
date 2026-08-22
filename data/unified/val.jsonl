@@ -1,0 +1,24 @@
+{"id": "bigearthnet_221", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "no"}
+{"id": "bigearthnet_230", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.0 0.0, 0.39 0.31]"}
+{"id": "rsvqa_86", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_86.jpg"], "question": "How many commercial buildings are there?", "answer": "6"}
+{"id": "bigearthnet_195", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "yes"}
+{"id": "bigearthnet_220", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "no"}
+{"id": "rsvqa_39", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_39.jpg"], "question": "What is the number of square grass areas?", "answer": "0"}
+{"id": "bigearthnet_205", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.0 0.0, 0.1 0.47]"}
+{"id": "rsvqa_87", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_87.jpg"], "question": "What is the number of medium water areas at the bottom of a  commercial building?", "answer": "1"}
+{"id": "bigearthnet_224", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "no"}
+{"id": "bigearthnet_178", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.76 0.9, 1.0 1.0]"}
+{"id": "rsvqa_40", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_40.jpg"], "question": "What is the number of small water areas in the image?", "answer": "7"}
+{"id": "bigearthnet_194", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "no"}
+{"id": "rsvqa_1", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_1.jpg"], "question": "What is the number of commercial buildings?", "answer": "5"}
+{"id": "rsvqa_71", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_71.jpg"], "question": "Are there more commercial buildings than grass areas?", "answer": "no"}
+{"id": "bigearthnet_150", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.0 0.0, 0.7 1.0]"}
+{"id": "cdvqa_114", "source_dataset": "cdvqa", "metadata": {}, "task": "change_vqa", "images": ["data/external/cdvqa/images/cdvqa-train-00000014_1.jpg", "data/external/cdvqa/images/cdvqa-train-00000014_2.jpg"], "question": "Did the areas of buildings change in the post-change image?", "answer": "yes"}
+{"id": "rsvqa_56", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_56.jpg"], "question": "Is the number of residential buildings equal to the number of roads in the image?", "answer": "no"}
+{"id": "cdvqa_107", "source_dataset": "cdvqa", "metadata": {}, "task": "change_vqa", "images": ["data/external/cdvqa/images/cdvqa-train-00000007_1.jpg", "data/external/cdvqa/images/cdvqa-train-00000007_2.jpg"], "question": "Have the regions of trees changed in the first image?", "answer": "no"}
+{"id": "bigearthnet_227", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.1 0.0, 1.0 0.65]"}
+{"id": "bigearthnet_179", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "[0.1 0.66, 0.72 1.0]"}
+{"id": "bigearthnet_166", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "no"}
+{"id": "bigearthnet_183", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "a"}
+{"id": "rsvqa_50", "source_dataset": "rsvqa", "metadata": {}, "task": "vqa", "images": ["data/external/rsvqa/images/val_50.jpg"], "question": "Are there more circular buildings than square roads?", "answer": "yes"}
+{"id": "bigearthnet_143", "source_dataset": "bigearthnet", "metadata": {}, "task": "caption", "images": [], "question": "Describe this satellite image.", "answer": "yes"}

@@ -1,0 +1,8 @@
+- source URL: https://huggingface.co/datasets/xiang709/VRSBench
+- download method: huggingface datasets (`load_dataset(..., streaming=True)`)
+- expected files: Subsampled locally to JSON+JPEG.
+- approximate size: Target ~2500 images, ~300 MB.
+- license: Custom Research
+- streaming possible: Yes
+- partial access: Yes
+- exact local destination: data/external/vrsbench

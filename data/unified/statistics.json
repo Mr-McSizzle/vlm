@@ -1,0 +1,17 @@
+{
+  "total_examples": 240,
+  "examples_by_source": {},
+  "examples_by_task": {},
+  "examples_by_split": {
+    "train": 192,
+    "val": 24,
+    "test": 24
+  },
+  "num_one_image": 0,
+  "num_two_image": 0,
+  "num_grounding": 0,
+  "num_skipped": 0,
+  "num_duplicates": 0,
+  "num_invalid": 0,
+  "timestamp": "2026-08-22T18:51:06.136927"
+}

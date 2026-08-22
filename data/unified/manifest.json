@@ -1,0 +1,6 @@
+{
+  "train": "train.jsonl",
+  "val": "val.jsonl",
+  "test": "test.jsonl",
+  "statistics": "statistics.json"
+}

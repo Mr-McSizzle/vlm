@@ -1,0 +1,8 @@
+- source URL: https://huggingface.co/datasets/BIFOLD-BigEarthNetv2-0/BigEarthNet.txt
+- download method: huggingface datasets (`load_dataset(..., streaming=True)`)
+- expected files: Subsampled locally to JSON+JPEG.
+- approximate size: Target ~1000 images, ~100 MB.
+- license: Apache-2.0 or appropriate research license.
+- streaming possible: Yes
+- partial access: Yes
+- exact local destination: data/external/bigearthnet_txt

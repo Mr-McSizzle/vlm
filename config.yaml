@@ -1,0 +1,52 @@
+dataset:
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  random_seed: 42
+  
+  sources:
+    rsvqa:
+      path: "data/external/rsvqa"
+      enabled: true
+      limit: 20
+      tasks: ["vqa"]
+      
+    vrsbench:
+      path: "data/external/vrsbench"
+      enabled: false
+      limit: 0
+      tasks: ["vqa", "grounding", "caption"]
+      
+    cdvqa:
+      path: "data/external/cdvqa"
+      enabled: true
+      limit: 40
+      tasks: ["change_vqa"]
+      
+    bigearthnet:
+      path: "data/external/bigearthnet_txt"
+      enabled: true
+      limit: 20
+      tasks: ["caption"]
+
+  target_mix:
+    vqa: 20
+    change_vqa: 40
+    grounding: 0
+    caption: 20
+
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  target_modules: '.*language_model.*\.(q_proj|k_proj|v_proj|o_proj)$'
+  
+training:
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-4
+  num_train_epochs: 1
+  max_steps: 4
+  save_steps: 2
+  logging_steps: 1
+  output_dir: "vlm/checkpoints/final_adapter"

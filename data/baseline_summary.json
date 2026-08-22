@@ -1,0 +1,28 @@
+{
+  "model": "llava-hf/llava-1.5-7b-hf",
+  "adapter": null,
+  "total_questions_defined": 20,
+  "questions_attempted": 20,
+  "questions_succeeded": 20,
+  "questions_failed": 0,
+  "questions_skipped": 0,
+  "average_inference_time_seconds": 29.47,
+  "min_inference_time_seconds": 20.03,
+  "max_inference_time_seconds": 65.11,
+  "total_evaluation_time_seconds": 590.69,
+  "category_counts": {
+    "general": 3,
+    "land_cover": 4,
+    "water": 3,
+    "urban": 3,
+    "agriculture": 3,
+    "change": 4
+  },
+  "task_counts": {
+    "vqa": 13,
+    "grounding": 3,
+    "change_vqa": 4
+  },
+  "results_file": "vlm\\data\\baseline_results.json",
+  "timestamp": "2026-08-22T17:07:05.056632"
+}

@@ -1,0 +1,8 @@
+- source URL: https://huggingface.co/datasets/ljx620/CDVQA
+- download method: huggingface datasets (`load_dataset(..., streaming=True)`)
+- expected files: Subsampled locally to JSON+JPEG pairs.
+- approximate size: Target ~2000 images, ~200 MB.
+- license: Open Access for Research.
+- streaming possible: Yes
+- partial access: Yes
+- exact local destination: data/external/cdvqa

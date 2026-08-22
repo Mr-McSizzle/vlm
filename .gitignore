@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+checkpoints/
+offload/
+data/external/
+*.jpg
+!test.jpg
+*.safetensors
+*.bin
+*.pt

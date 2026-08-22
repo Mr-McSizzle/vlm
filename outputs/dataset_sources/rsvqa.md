@@ -1,0 +1,8 @@
+- source URL: https://huggingface.co/datasets/dmarsili/RSVQA-LR-2k
+- download method: huggingface datasets (`load_dataset(..., streaming=True)`)
+- expected files: Subsampled locally to JSON+JPEG.
+- approximate size: Target ~2000 images, ~200 MB.
+- license: MIT / Custom Research
+- streaming possible: Yes
+- partial access: Yes
+- exact local destination: data/external/rsvqa
