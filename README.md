@@ -85,3 +85,41 @@ python evaluate_authoritative.py --model adapted --checkpoint checkpoints/final_
 \\ash
 python compare_models.py
 \\n
+## Gemini Internal Fallback
+
+SatQuery VLM includes an **optional internal fallback** to a Google Gemini multimodal model.
+
+**Important Guarantees:**
+- **SatQuery VLM remains the primary model** at all times.
+- **P3 does not need to know Gemini exists**. The P3 interface remains completely unchanged.
+- The output schema is 100% identical.
+
+### Configuration
+
+The fallback is disabled by default. To enable it, set the following environment variables:
+
+- `GEMINI_FALLBACK_ENABLED=true`
+- `GEMINI_API_KEY=<your_api_key>` (Never hard-code or commit this key)
+- `GEMINI_MODEL=gemini-1.5-flash` (Optional, defaults to gemini-1.5-flash)
+- `GEMINI_TIMEOUT_SECONDS=30` (Optional, defaults to 30)
+- `GEMINI_HIGH_RISK_TASKS=change_vqa,grounding` (Optional, comma-separated tasks that always trigger fallback)
+
+### Fallback Behavior
+
+Gemini will automatically be invoked internally *only* if:
+1. The primary VLM crashes or returns an error.
+2. The primary VLM returns an empty answer.
+3. The primary VLM's output is marked as truncated (max tokens reached).
+4. A grounding parser fails (e.g. malformed bounding box).
+5. The requested task is explicitly configured in `GEMINI_HIGH_RISK_TASKS`.
+
+### Error Behavior & Output Provenance
+
+If the primary VLM succeeds, no fallback is attempted.
+If the Gemini API fails or the API key is missing, the system will **not crash**. It will seamlessly return the primary SatQuery VLM's original response.
+
+You can trace exactly which model produced the final answer by inspecting the returned `metadata`:
+- `metadata["fallback_used"] = True/False`
+- `metadata["fallback_provider"] = "gemini"` (if used)
+- `metadata["fallback_reason"]` (why the fallback triggered)
+- `metadata["fallback_error"]` (if the fallback was attempted but failed)

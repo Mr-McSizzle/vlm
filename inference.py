@@ -265,7 +265,7 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
         if parse_warning:
             metadata["parse_warning"] = parse_warning
 
-        return {
+        res = {
             "answer": clean_answer,
             "task": task,
             "regions": regions,
@@ -276,7 +276,7 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
         }
 
     except Exception as e:
-        return {
+        res = {
             "answer": "",
             "task": task if task else "unknown",
             "regions": [],
@@ -291,6 +291,68 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
                 "adapter_present": (model_type == "adapted")
             }
         }
+        # Populate evidence metadata if it was successfully parsed before error
+        if 'evidence_metadata' in locals():
+            res["metadata"].update(evidence_metadata)
+            if 'evidence_confidence' in locals() and evidence_confidence is not None:
+                res["metadata"]["evidence_confidence"] = evidence_confidence
+                
+    # GEMINI FALLBACK LOGIC
+    import os
+    fallback_enabled = os.environ.get("GEMINI_FALLBACK_ENABLED", "false").lower() == "true"
+    if fallback_enabled:
+        fallback_reason = None
+        if res["metadata"].get("status") == "error":
+            fallback_reason = "primary VLM error"
+        elif not res.get("answer", "").strip():
+            fallback_reason = "primary VLM empty answer"
+        elif res["metadata"].get("truncated"):
+            fallback_reason = "primary VLM truncated output"
+        elif res["metadata"].get("status") == "warning":
+            fallback_reason = "primary VLM parsing warning"
+        else:
+            high_risk_tasks = os.environ.get("GEMINI_HIGH_RISK_TASKS", "").split(",")
+            if res.get("task") in high_risk_tasks and res.get("task"):
+                fallback_reason = "high-risk task configured"
+                
+        if fallback_reason:
+            try:
+                from gemini_fallback import gemini_answer
+                # We need loaded_images, if image loading failed, it might not exist.
+                # If images couldn't be loaded, Gemini will likely fail too, but we pass whatever we have or let it fail safely.
+                if 'loaded_images' not in locals():
+                    loaded_images = []
+                if 'evidence_text' not in locals():
+                    evidence_text = None
+                    
+                gemini_res = gemini_answer(loaded_images, question, evidence_text, res.get("task"))
+                
+                # Merge provenance
+                gemini_res["metadata"]["fallback_used"] = True
+                gemini_res["metadata"]["fallback_provider"] = "gemini"
+                gemini_res["metadata"]["primary_model"] = "satquery-vlm"
+                gemini_res["metadata"]["fallback_reason"] = fallback_reason
+                
+                # Preserve evidence metadata
+                if 'evidence_metadata' in locals() and "evidence_used" in evidence_metadata:
+                    gemini_res["metadata"]["evidence_used"] = evidence_metadata["evidence_used"]
+                    gemini_res["metadata"]["evidence_type"] = evidence_metadata["evidence_type"]
+                    gemini_res["metadata"]["evidence_source"] = evidence_metadata["evidence_source"]
+                if 'evidence_confidence' in locals() and evidence_confidence is not None:
+                    gemini_res["metadata"]["evidence_confidence"] = evidence_confidence
+                    
+                return gemini_res
+                
+            except ValueError as e:
+                if "GEMINI_API_KEY" in str(e):
+                    res["metadata"]["fallback_unavailable"] = True
+                else:
+                    res["metadata"]["fallback_error"] = str(e)
+            except Exception as e:
+                res["metadata"]["fallback_error"] = str(e)
+                
+    res["metadata"]["fallback_used"] = False
+    return res
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CLI interface for VLM")
