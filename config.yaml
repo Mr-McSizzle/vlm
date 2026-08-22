@@ -49,4 +49,4 @@ training:
   max_steps: 4
   save_steps: 2
   logging_steps: 1
-  output_dir: "vlm/checkpoints/final_adapter"
+  output_dir: "checkpoints/final_adapter"

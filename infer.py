@@ -1,5 +1,5 @@
 import argparse
-from vlm.inference import vlm_answer
+from inference import vlm_answer
 
 def main():
     parser = argparse.ArgumentParser(description="Standalone inference test for SatQuery AI VLM")

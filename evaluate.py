@@ -1,7 +1,7 @@
 import argparse
 import json
-from vlm.inference import vlm_answer
-from vlm.dataset import VLMDataset
+from inference import vlm_answer
+from dataset import VLMDataset
 
 def evaluate(args):
     print(f"Evaluating VLM on dataset: {args.dataset}")

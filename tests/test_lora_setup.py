@@ -1,10 +1,13 @@
 import torch
 from transformers import LlavaForConditionalGeneration, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
+from pathlib import Path
 import yaml
 
 def test_lora_trainable_parameters():
-    with open('vlm/config.yaml') as f:
+    vlm_dir = Path(__file__).parent.parent
+    config_path = vlm_dir / "config.yaml"
+    with open(config_path) as f:
         config = yaml.safe_load(f)
         
     model_id = 'llava-hf/llava-1.5-7b-hf'

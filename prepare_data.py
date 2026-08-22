@@ -59,7 +59,10 @@ def build_unified_dataset(config, config_path):
                     # Add image existence check
                     def check_images(img_paths):
                         for p in img_paths:
-                            if not Path(p).exists(): return False
+                            p_path = Path(p)
+                            if not p_path.is_absolute() and p_path.parts and p_path.parts[0] == 'data':
+                                p_path = vlm_dir / p_path
+                            if not p_path.exists(): return False
                         return True
                         
                     if ds_name == "vrsbench":

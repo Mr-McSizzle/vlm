@@ -1,10 +1,13 @@
 import os
 import json
+from pathlib import Path
 from datasets import load_dataset
+
+vlm_dir = Path(__file__).parent
 
 def download_vrsbench(train_limit=20, val_limit=10):
     print("VRSBench...")
-    out_dir = "data/external/vrsbench"
+    out_dir = vlm_dir / "data/external/vrsbench"
     os.makedirs(f"{out_dir}/images", exist_ok=True)
     
     for split in ["train", "validation", "test"]:
@@ -22,7 +25,8 @@ def download_vrsbench(train_limit=20, val_limit=10):
             img.convert("RGB").save(img_path)
             
             del item['image']
-            item['local_image_path'] = img_path
+            # Make path relative to vlm directory for dataset manifest
+            item['local_image_path'] = f"data/external/vrsbench/images/{img_id}.jpg"
             records.append(item)
             
             count += 1
@@ -35,7 +39,7 @@ def download_vrsbench(train_limit=20, val_limit=10):
 
 def download_cdvqa(train_limit=100, val_limit=10):
     print("CDVQA...")
-    out_dir = "data/external/cdvqa"
+    out_dir = vlm_dir / "data/external/cdvqa"
     os.makedirs(f"{out_dir}/images", exist_ok=True)
     
     for split in ["train", "validation", "test"]:
@@ -68,8 +72,8 @@ def download_cdvqa(train_limit=100, val_limit=10):
             if 'json' in item:
                 record = item['json']
             
-            record['local_image1'] = p1
-            record['local_image2'] = p2
+            record['local_image1'] = f"data/external/cdvqa/images/{img_id}_1.jpg"
+            record['local_image2'] = f"data/external/cdvqa/images/{img_id}_2.jpg"
             records.append(record)
             
             count += 1
@@ -82,7 +86,7 @@ def download_cdvqa(train_limit=100, val_limit=10):
 
 def download_rsvqa(val_limit=100):
     print("RSVQA...")
-    out_dir = "data/external/rsvqa"
+    out_dir = vlm_dir / "data/external/rsvqa"
     os.makedirs(f"{out_dir}/images", exist_ok=True)
     
     for split in ["validation"]:
@@ -100,7 +104,7 @@ def download_rsvqa(val_limit=100):
             img.convert("RGB").save(img_path)
             
             del item['image']
-            item['local_image_path'] = img_path
+            item['local_image_path'] = f"data/external/rsvqa/images/{img_id}.jpg"
             records.append(item)
             
             count += 1
@@ -112,7 +116,7 @@ def download_rsvqa(val_limit=100):
 
 def download_bigearthnet(limit=100):
     print("BigEarthNet...")
-    out_dir = "data/external/bigearthnet_txt"
+    out_dir = vlm_dir / "data/external/bigearthnet_txt"
     os.makedirs(out_dir, exist_ok=True)
     
     for split in ["all_data"]:

@@ -73,7 +73,7 @@ def main():
     with open(config_path) as f:
         config = yaml.safe_load(f)
         
-    out_dir = vlm_dir / config["training"]["output_dir"].replace("vlm/", "")
+    out_dir = vlm_dir / config["training"]["output_dir"]
     os.makedirs(out_dir, exist_ok=True)
     
     print("Loading processor...")

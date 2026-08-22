@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
 from PIL import Image
-from vlm.prompts import get_prompt
+from prompts import get_prompt
 
 def format_prompt(task_type, question_text, num_images):
     base_prompt = get_prompt(task_type, question=question_text)

@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from vlm.schemas import VLMRequest, VLMResponse, DatasetRecord
+from schemas import VLMRequest, VLMResponse, DatasetRecord
 
 def test_vlm_request_valid():
     req = VLMRequest(images=["img1.jpg"], question="What is this?")

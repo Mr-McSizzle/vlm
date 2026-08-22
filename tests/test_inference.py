@@ -1,5 +1,5 @@
-from vlm.inference import vlm_answer, SatQueryVLM
-from vlm.schemas import VLMRequest
+from inference import vlm_answer, SatQueryVLM
+from schemas import VLMRequest
 
 def test_satquery_vlm_generate():
     model = SatQueryVLM(model_name="dummy")

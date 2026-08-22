@@ -5,8 +5,11 @@ try:
 except ImportError:
     pass
 
-from .schemas import VLMRequest, VLMResponse
-from .prompts import get_prompt
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
+from schemas import VLMRequest, VLMResponse
+from prompts import get_prompt
 
 # Placeholder for actual model loading logic
 # from transformers import AutoProcessor, AutoModelForCausalLM

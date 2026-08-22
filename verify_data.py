@@ -2,8 +2,10 @@ import json
 from pathlib import Path
 
 def generate_preview():
-    unified_dir = Path("vlm/data/unified")
-    preview_file = Path("vlm/outputs/unified_dataset_preview.md")
+    vlm_dir = Path(__file__).parent
+    unified_dir = vlm_dir / "data" / "unified"
+    preview_file = vlm_dir / "outputs" / "unified_dataset_preview.md"
+    preview_file.parent.mkdir(parents=True, exist_ok=True)
     
     records = []
     for split in ["train.jsonl", "val.jsonl", "test.jsonl"]:

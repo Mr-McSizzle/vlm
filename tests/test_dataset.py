@@ -3,39 +3,52 @@ import pytest
 import tempfile
 import torch
 from pathlib import Path
-from vlm.dataset import VLMDataset, DataCollator
+from dataset import VLMDataset, DataCollator
 
 @pytest.fixture
 def dummy_jsonl(tmp_path):
     file_path = tmp_path / "dummy.jsonl"
     records = [
-        {"image_paths": ["a.png"], "prompt": "Q1", "target": "A1"},
-        {"image_paths": ["b.png"], "prompt": "Q2", "target": "A2"}
+        {"images": ["a.png"], "question": "Q1", "answer": "A1"},
+        {"images": ["b.png"], "question": "Q2", "answer": "A2"}
     ]
     with open(file_path, "w") as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
     return str(file_path)
 
+class DummyProcessor:
+    def __init__(self):
+        pass
+    def __call__(self, text=None, images=None, return_tensors=None, padding=None):
+        return {"input_ids": torch.tensor([[1,2,3], [4,5,6]])}
+    @property
+    def tokenizer(self):
+        class DummyTokenizer:
+            pad_token_id = 0
+        return DummyTokenizer()
+
 def test_vlm_dataset(dummy_jsonl):
-    ds = VLMDataset(dummy_jsonl)
+    processor = DummyProcessor()
+    ds = VLMDataset(dummy_jsonl, processor)
     assert len(ds) == 2
     item = ds[0]
-    assert item["prompt"] == "Q1"
-    assert item["target"] == "A1"
+    assert "text" in item
 
 def test_data_collator():
-    collator = DataCollator(processor=None)
+    processor = DummyProcessor()
+    collator = DataCollator(processor=processor)
     batch = [
-        {"image_paths": ["a.png"], "prompt": "Q1", "target": "A1"},
-        {"image_paths": ["b.png"], "prompt": "Q2", "target": "A2"}
+        {"images": None, "text": "USER: Q1\nASSISTANT: A1"},
+        {"images": None, "text": "USER: Q2\nASSISTANT: A2"}
     ]
     out = collator(batch)
     assert "input_ids" in out
     assert out["input_ids"].shape == (2, 3)
 
 def test_unified_dataset_quality_gates():
-    unified_dir = Path("vlm/data/unified")
+    vlm_dir = Path(__file__).parent.parent
+    unified_dir = vlm_dir / "data" / "unified"
     if not unified_dir.exists():
         pytest.skip("Unified dataset directory not found.")
         
@@ -62,7 +75,10 @@ def test_unified_dataset_quality_gates():
                     assert len(record["images"]) in [1, 2]
                 
                 for img in record["images"]:
-                    assert Path(img).exists(), f"Missing image: {img}"
+                    img_path = Path(img)
+                    if not img_path.is_absolute() and img_path.parts[0] == 'data':
+                        img_path = vlm_dir / img_path
+                    assert img_path.exists(), f"Missing image: {img}"
                     
                 assert len(record["question"].strip()) > 0
                 assert len(record["answer"].strip()) > 0

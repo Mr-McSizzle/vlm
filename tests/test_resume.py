@@ -16,8 +16,11 @@ def test_resume():
         device_map={"": 0}
     )
     
+    from pathlib import Path
+    vlm_dir = Path(__file__).parent.parent
+    ckpt_dir = vlm_dir / "checkpoints" / "final_adapter"
     # Reload adapter with is_trainable=True to resume training
-    model = PeftModel.from_pretrained(base_model, "vlm/checkpoints/smoke_test", is_trainable=True)
+    model = PeftModel.from_pretrained(base_model, str(ckpt_dir), is_trainable=True)
     
     # Verify it requires gradients
     trainable_params, all_param = model.get_nb_trainable_parameters()

@@ -13,7 +13,7 @@ def main():
     with open(config_path) as f:
         config = yaml.safe_load(f)
         
-    out_dir = vlm_dir / config["training"]["output_dir"].replace("vlm/", "")
+    out_dir = vlm_dir / config["training"]["output_dir"]
     if not out_dir.exists():
         print(f"ERROR: Checkpoint not found at {out_dir}")
         sys.exit(1)

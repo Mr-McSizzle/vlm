@@ -1,4 +1,4 @@
-from vlm.prompts import get_prompt, VQA_PROMPT, EVIDENCE_PROMPT_ADDITION
+from prompts import get_prompt, VQA_PROMPT, EVIDENCE_PROMPT_ADDITION
 
 def test_get_prompt_vqa():
     p = get_prompt("vqa", question="Is this a road?")
