@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import List, Union, Dict, Any, Optional
 from PIL import Image
 
+import torch
+from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
+from peft import PeftModel
+
 # Import prompt builder
 from prompts import build_llava_prompt
 
@@ -16,40 +20,31 @@ logger = logging.getLogger(__name__)
 class VLMRunner:
     _instance = None
 
-    def __init__(self):
+    def __init__(self, model_type="adapted", checkpoint_dir=None):
         self.processor = None
         self.model = None
         self.max_new_tokens = 128
-        self.checkpoint_dir = None
+        self.model_type = model_type
+        self.checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir else (Path(__file__).parent / "checkpoints" / "final_adapter")
         self.is_loaded = False
         
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls, model_type="adapted", checkpoint_dir=None):
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls(model_type, checkpoint_dir)
+        else:
+            if cls._instance.model_type != model_type:
+                logger.warning(f"Re-initializing VLMRunner from {cls._instance.model_type} to {model_type}")
+                cls._instance = cls(model_type, checkpoint_dir)
         return cls._instance
 
     def load_model(self):
         if self.is_loaded:
             return
 
-        import torch
-        from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
-        from peft import PeftModel
-
         vlm_dir = Path(__file__).parent
-        self.checkpoint_dir = vlm_dir / "checkpoints" / "final_adapter"
-
-        # 1. Check for smoke-test marker
-        smoke_marker = self.checkpoint_dir / "LOCAL_SMOKE_TEST_ONLY.txt"
-        if smoke_marker.exists():
-            raise RuntimeError(f"Model load blocked: Smoke test marker found in {self.checkpoint_dir}")
-
-        # 2. Check if checkpoint exists
-        if not (self.checkpoint_dir / "adapter_config.json").exists():
-            raise RuntimeError(f"Model load blocked: Genuine checkpoint missing in {self.checkpoint_dir}")
-
-        # Load config
+        
+        # Load config for generation settings
         config_path = vlm_dir / "config.yaml"
         if config_path.exists():
             with open(config_path) as f:
@@ -71,14 +66,37 @@ class VLMRunner:
             quantization_config=q_config,
             device_map="auto"
         )
-        
-        logger.info(f"Loading adapter from {self.checkpoint_dir}...")
-        self.model = PeftModel.from_pretrained(base_model, str(self.checkpoint_dir))
+
+        if self.model_type == "adapted":
+            # 1. Check for smoke-test marker
+            smoke_marker = self.checkpoint_dir / "LOCAL_SMOKE_TEST_ONLY.txt"
+            if smoke_marker.exists():
+                raise RuntimeError(f"Model load blocked: Smoke test marker found in {self.checkpoint_dir}")
+
+            # 2. Check if checkpoint exists
+            if not (self.checkpoint_dir / "adapter_config.json").exists():
+                raise RuntimeError(f"Model load blocked: Genuine checkpoint missing in {self.checkpoint_dir}")
+                
+            adapter_weights = self.checkpoint_dir / "adapter_model.safetensors"
+            if not adapter_weights.exists():
+                raise RuntimeError(f"Model load blocked: adapter_model.safetensors missing in {self.checkpoint_dir}")
+
+            logger.info(f"Loading PEFT adapter from {self.checkpoint_dir}...")
+            self.model = PeftModel.from_pretrained(base_model, str(self.checkpoint_dir))
+            
+            if not hasattr(self.model, "peft_config"):
+                raise RuntimeError("Failed to load PeftModel. The resulting model does not have peft_config.")
+            
+            logger.info("adapter_loaded = True")
+        else:
+            logger.info("model_type is base. Skipping adapter load.")
+            self.model = base_model
+            self.checkpoint_dir = Path("base")
+            
         self.model.eval()
         self.is_loaded = True
 
     def infer(self, images: List[Image.Image], question: str, task: str, evidence: dict = None) -> dict:
-        import torch
         self.load_model()
         
         prompt = build_llava_prompt(question, len(images), task, evidence)
@@ -132,7 +150,7 @@ def clean_model_output(raw_text: str) -> str:
     
     return clean_text.strip()
 
-def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[Any] = None, task: Optional[str] = None) -> dict:
+def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[Any] = None, task: Optional[str] = None, model_type: str = "adapted", checkpoint: Optional[str] = None) -> dict:
     """
     Public interface for the SatQuery VLM.
     """
@@ -193,11 +211,11 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
                 evidence_confidence = parsed_result["confidence"]
             
         # Execute model
-        runner = VLMRunner.get_instance()
+        runner = VLMRunner.get_instance(model_type, checkpoint)
         res = runner.infer(loaded_images, question, task, evidence_text)
         
         raw_answer = res["raw_answer"]
-        checkpoint = res["checkpoint"]
+        final_checkpoint = res["checkpoint"]
         truncated = res["truncated"]
         
         # Clean the output text
@@ -237,7 +255,9 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
             "latency_seconds": round(time.time() - t0, 3),
             "status": "warning" if parse_warning else "ok",
             "truncated": truncated,
-            "raw_output_available": True
+            "raw_output_available": True,
+            "model_type": model_type,
+            "adapter_present": (model_type == "adapted")
         }
         metadata.update(evidence_metadata)
         if evidence_confidence is not None:
@@ -251,7 +271,7 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
             "regions": regions,
             "confidence": None,
             "model": "satquery-vlm",
-            "checkpoint": checkpoint,
+            "checkpoint": final_checkpoint,
             "metadata": metadata
         }
 
@@ -266,7 +286,9 @@ def vlm_answer(images: Union[str, List[str]], question: str, evidence: Optional[
             "metadata": {
                 "status": "error",
                 "error_type": type(e).__name__,
-                "error_message": str(e)
+                "error_message": str(e),
+                "model_type": model_type,
+                "adapter_present": (model_type == "adapted")
             }
         }
 
@@ -275,13 +297,17 @@ if __name__ == "__main__":
     parser.add_argument("--images", nargs="+", required=True, help="Path(s) to image(s)")
     parser.add_argument("--question", type=str, required=True, help="Question to ask")
     parser.add_argument("--task", type=str, default=None, choices=["vqa", "change_vqa", "caption", "grounding"], help="Task type")
+    parser.add_argument("--model", type=str, default="adapted", choices=["base", "adapted"], help="Model type to load")
+    parser.add_argument("--checkpoint", type=str, default=None, help="Path to checkpoint")
     
     args = parser.parse_args()
     
     result = vlm_answer(
         images=args.images,
         question=args.question,
-        task=args.task
+        task=args.task,
+        model_type=args.model,
+        checkpoint=args.checkpoint
     )
     
     import json
