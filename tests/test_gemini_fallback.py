@@ -209,3 +209,27 @@ def test_json_serialization(dummy_images, monkeypatch):
             assert "Gemini answer" in json_str
         except Exception as e:
             pytest.fail(f"Result not JSON serializable: {e}")
+
+def test_gemini_api_timeout(dummy_images, monkeypatch):
+    monkeypatch.setenv("GEMINI_FALLBACK_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "fake_key")
+    monkeypatch.setenv("GEMINI_TIMEOUT_SECONDS", "60")
+    
+    with patch("inference.VLMRunner.get_instance") as mock_runner:
+        mock_instance = MagicMock()
+        mock_instance.infer.side_effect = RuntimeError("Primary Fail")
+        mock_runner.return_value = mock_instance
+        
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = Exception("ReadTimeout occurred")
+        mock_genai.Client.return_value = mock_client
+        
+        res = vlm_answer(dummy_images[0], "What is this?", task="vqa")
+        
+        mock_genai.Client.assert_called()
+        args, kwargs = mock_genai.Client.call_args
+        assert "http_options" in kwargs
+        
+        assert res["metadata"]["fallback_used"] is False
+        assert res["metadata"]["fallback_error"] == "timeout"
+        assert res["metadata"]["status"] == "error"

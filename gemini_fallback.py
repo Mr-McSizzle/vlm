@@ -19,7 +19,7 @@ def gemini_answer(
         raise ValueError("GEMINI_API_KEY not set")
         
     model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-    timeout = int(os.environ.get("GEMINI_TIMEOUT_SECONDS", "30"))
+    timeout = int(os.environ.get("GEMINI_TIMEOUT_SECONDS", "60"))
     
     if len(images) > 2:
         raise ValueError("Max 2 images supported")
@@ -30,7 +30,11 @@ def gemini_answer(
     except ImportError:
         raise RuntimeError("google-genai package not installed")
         
-    client = genai.Client(api_key=api_key, http_options={'timeout': timeout})
+    http_options = types.HttpOptions(
+        timeout=timeout,
+        retry_options=types.HttpRetryOptions(attempts=2)
+    )
+    client = genai.Client(api_key=api_key, http_options=http_options)
     
     contents = []
     if evidence:
@@ -50,6 +54,9 @@ def gemini_answer(
         )
         text = response.text.strip()
     except Exception as e:
+        err_str = str(e).lower()
+        if "timeout" in err_str or "deadline" in err_str:
+            raise RuntimeError("timeout")
         raise RuntimeError(f"Gemini API failure: {str(e)}")
         
     return {
