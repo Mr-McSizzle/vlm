@@ -123,6 +123,19 @@ def main():
     model.gradient_checkpointing_enable()
     model.enable_input_require_grads()
     
+    # EXPLICITLY FREEZE VISION TOWER
+    vision_frozen_count = 0
+    for name, param in model.named_parameters():
+        if "vision_tower" in name:
+            param.requires_grad = False
+            vision_frozen_count += param.numel()
+    print(f"Explicitly frozen {vision_frozen_count:,} parameters in the vision tower.")
+    
+    # Hard assertion: ensure no vision parameters are trainable
+    vision_unfrozen = [n for n, p in model.named_parameters() if "vision_tower" in n and p.requires_grad]
+    if len(vision_unfrozen) > 0:
+        raise RuntimeError(f"Vision encoder is not fully frozen. Unfrozen parameters: {vision_unfrozen}")
+    
     trainable_params, all_param = model.get_nb_trainable_parameters()
     print(f"Trainable: {trainable_params} / {all_param} ({100 * trainable_params / all_param:.4f}%)")
     

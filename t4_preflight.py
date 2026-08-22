@@ -112,10 +112,21 @@ def main():
     log("\n--- STEP 3: Architecture verification ---")
 
     # Vision encoder frozen check
-    vision_params = [p for n, p in model.named_parameters() if "vision" in n.lower()]
+    # We must explicitly freeze it before LoRA
+    vision_tensors = 0
+    vision_elements = 0
+    for name, param in model.named_parameters():
+        if "vision_tower" in name:
+            param.requires_grad = False
+            vision_tensors += 1
+            vision_elements += param.numel()
+            
+    vision_params = [p for n, p in model.named_parameters() if "vision_tower" in n]
     vision_frozen = all(not p.requires_grad for p in vision_params)
-    log(f"Vision encoder parameters: {len(vision_params)}")
-    log(f"Vision encoder frozen:     {vision_frozen}")
+    
+    log(f"Vision encoder parameter tensors: {vision_tensors}")
+    log(f"Vision encoder total parameters:  {vision_elements:,}")
+    log(f"Vision encoder frozen:            {vision_frozen}")
     if not vision_frozen:
         log("WARNING: Vision encoder is NOT frozen!")
         all_ok = False
